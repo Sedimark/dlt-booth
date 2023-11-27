@@ -1,0 +1,18 @@
+
+  #   restart: unless-stopped
+  #   ports:
+  #     - 27017:27017
+version: '3.9'
+services:
+  postgres:
+      image: postgres:latest
+      container_name: postgres
+      hostname: database
+      ports:
+        - "5432:5432"
+      volumes: 
+        - ./postgresdata:/var/lib/postgresql/data
+        - ./sql/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql
+      restart: always
+      env_file: 
+      - ./env/postgres.env

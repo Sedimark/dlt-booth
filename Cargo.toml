@@ -1,0 +1,42 @@
+[package]
+name = "mediterraneus-connector-rs"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.4.0"
+anyhow = "1.0.75"
+dotenv = "0.15.0"
+log = "0.4.20"
+env_logger = "0.10.0"
+hex = "0.4.3"
+uuid = "1.4.0"
+serde =  { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.100"
+thiserror = "1.0.50"
+reqwest = "0.11.22"
+rand = "0.8.5"
+tokio = { version = "1.20.1", default-features = false, features = ["rt"] }
+async-trait = "0.1.74"
+
+# iota libraries
+iota-sdk = { version = "1.1.2", features = ["stronghold", "rocksdb"]}
+identity_iota = { version = "1.0.0", features = ["memstore"]}
+identity_eddsa_verifier = "1.0.0"
+identity_stronghold = "1.0.0"
+iota-crypto = {version = "0.23.0", default-features = false, features = ["ed25519", "random", "blake2b"]}
+
+# postgres
+deadpool-postgres = { version = "0.11.0", features = ["serde"]}
+tokio-pg-mapper = "0.2.0"
+tokio-pg-mapper-derive = "0.2.0"
+tokio-postgres = "0.7.6"
+
+
+
+[lib]
+name = "connector"
+path = "src/lib.rs"
