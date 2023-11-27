@@ -9,8 +9,16 @@ use reqwest::StatusCode;
 #[derive(thiserror::Error, Debug)]
 pub enum ConnectorError {
 
+    // IOTA Errors
     #[error("Iota Client Error")]
     IotaClientError(#[from] iota_sdk::client::Error),
+    #[error("Resolve Error")]
+    ResolveError(#[from] identity_iota::iota::Error),
+    #[error("Did Error")]
+    DidError(#[from] identity_iota::did::Error),
+    #[error("Jwk error")]
+    JwkError(#[from]identity_iota::storage::JwkStorageDocumentError),
+
     // Database Errors
     #[error("Row not found")]   
     RowNotFound,
@@ -37,6 +45,9 @@ impl ResponseError for ConnectorError {
             ConnectorError::TokioPostgresError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::TokioPostgresMapperError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::PoolError(_) => StatusCode::FORBIDDEN,
+            ConnectorError::ResolveError(_) => todo!(),
+            ConnectorError::DidError(_) => todo!(),
+            ConnectorError::JwkError(_) => todo!(),
 
         }
     }

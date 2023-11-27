@@ -3,11 +3,11 @@ use crate::{repository::identity_operations::IdentityExt, models::identity::Iden
 
 pub async fn create_identity(
     pg_client: &PostgresClient,
-    eth_address: String, 
+    eth_address: &String, 
 ) -> Result<String, ConnectorError>  {
     log::info!("creating identity");
     let new_identity = Identity {
-        eth_address,
+        eth_address: eth_address.clone(),
         did: "todo!()".to_string(),
         fragment: "todo!()".to_string(),
         vcredential: None,

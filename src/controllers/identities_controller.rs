@@ -8,18 +8,32 @@ use deadpool_postgres::Pool;
 use identity_iota::storage::key_storage;
 use serde_json::json;
 
+use crate::dtos::IdentityRequest;
 use crate::errors::ConnectorError;
+use crate::models::identity::Identity;
+use crate::repository::identity_operations::IdentityExt;
 use crate::services::identity_service;
+use crate::utils::iota::IotaState;
 
 #[post("")] 
 async fn create_identity(
+    req_body: web::Json<IdentityRequest>, 
     db_pool: web::Data<Pool>,
+    iota_state: web::Data<IotaState>
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
-    identity_service::create_identity(&pg_client, "hello".to_string()).await?;
+    let (doc, fragment) = iota_state.create_did().await?;
 
-    Ok(HttpResponse::Ok().json(json!({"hello" : "word"})))
+    let new_identity = Identity {
+        eth_address: req_body.eth_address.clone(),
+        did: doc.id().to_string(),
+        fragment: fragment,
+        vcredential: None,
+    };
+    let _ = pg_client.insert_identity(&new_identity).await?;
+
+    Ok(HttpResponse::Ok().json(new_identity))
 }
 
 #[get("/{eth_address}")]
