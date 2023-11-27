@@ -1,0 +1,1 @@
+SELECT $table_fields FROM connector.download_requests WHERE nonce = $1;

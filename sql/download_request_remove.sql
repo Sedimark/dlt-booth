@@ -1,0 +1,1 @@
+DELETE FROM connector.download_requests WHERE nonce = $1;
