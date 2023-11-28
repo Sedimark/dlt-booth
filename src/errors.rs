@@ -9,6 +9,9 @@ use reqwest::StatusCode;
 #[derive(thiserror::Error, Debug)]
 pub enum ConnectorError {
 
+    #[error("Credential Missing")]
+    CredentialMissing,
+
     // IOTA Errors
     #[error("Iota Client Error")]
     IotaClientError(#[from] iota_sdk::client::Error),
@@ -18,6 +21,9 @@ pub enum ConnectorError {
     DidError(#[from] identity_iota::did::Error),
     #[error("Jwk error")]
     JwkError(#[from]identity_iota::storage::JwkStorageDocumentError),
+    #[error("Credenital Error")]
+    CredenitalError(#[from] identity_iota::credential::Error),
+    
 
     // Database Errors
     #[error("Row not found")]   
@@ -45,9 +51,11 @@ impl ResponseError for ConnectorError {
             ConnectorError::TokioPostgresError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::TokioPostgresMapperError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::PoolError(_) => StatusCode::FORBIDDEN,
-            ConnectorError::ResolveError(_) => todo!(),
-            ConnectorError::DidError(_) => todo!(),
-            ConnectorError::JwkError(_) => todo!(),
+            ConnectorError::ResolveError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::DidError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::JwkError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::CredentialMissing => StatusCode::BAD_REQUEST,
+            ConnectorError::CredenitalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
 
         }
     }

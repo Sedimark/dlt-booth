@@ -10,6 +10,11 @@ use anyhow::Result;
 use crypto::keys::bip39::Mnemonic;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::credential::Jws;
+use identity_iota::credential::Jwt;
+use identity_iota::credential::JwtPresentationOptions;
+use identity_iota::credential::Presentation;
+use identity_iota::credential::PresentationBuilder;
+use identity_iota::did::DID;
 use identity_iota::document::verifiable::JwsVerificationOptions;
 use identity_iota::iota::IotaDID;
 use identity_iota::iota::block::output::AliasOutput;
@@ -258,5 +263,39 @@ impl IotaState {
 
     Ok(jws)
   }
+
+  pub async fn gen_presentation(
+    &self,
+    identity: Identity,
+    challenge: String,
+  ) -> Result<Jwt, ConnectorError> {
+    log::info!("Resolving did...");
+    let document = self.resolve_did(identity.did.as_str()).await?;
+
+    let credential_jwt = Jwt::new(identity.vcredential.ok_or(ConnectorError::CredentialMissing)?);
+
+    log::info!("gen_presentation");
+    // Create an unsigned Presentation from the previously issued Verifiable Credential.
+    let presentation: Presentation<Jwt> =
+    PresentationBuilder::new(document.id().to_url().into(), Default::default())
+      .credential(credential_jwt)
+      .build()?;
+
+    // Create a JWT verifiable presentation using the holder's verification method
+    // and include the requested challenge and expiry timestamp.
+    let presentation_jwt: Jwt = document
+      .create_presentation_jwt(
+        &presentation,
+        &self.storage,
+        &identity.fragment,
+        &JwsSignatureOptions::default().nonce(challenge.to_owned()),
+        &JwtPresentationOptions::default() // .expiration_date(expires),
+      )
+      .await?; 
+
+    Ok(presentation_jwt)
+  }
+  
+
   
 }

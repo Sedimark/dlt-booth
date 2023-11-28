@@ -85,16 +85,17 @@ async fn sign_data(
 #[post("/{identity_id}/gen-presentation")] 
 async fn gen_presentation(
     path: web::Path<i64>,
-    _req_body: web::Json<PresentationRequest>, 
+    req_body: web::Json<PresentationRequest>, 
     db_pool: web::Data<Pool>,
-    _iota_state: web::Data<IotaState>
+    iota_state: web::Data<IotaState>
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller gen_presentation");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let identity_id = path.into_inner();    
     let identity = pg_client.get_identity(identity_id).await?;
+    let presentetion_jwt = iota_state.gen_presentation(identity, req_body.challenge.clone()).await?;
 
-    Ok(HttpResponse::Ok().json(identity))
+    Ok(HttpResponse::Ok().json(json!({"presentation": presentetion_jwt.as_str()})))
 }
 
 // this function could be located in a different module
