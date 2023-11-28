@@ -1,3 +1,4 @@
 UPDATE connector.identities
 SET vcredential = $1 
-WHERE eth_address = $2;
+WHERE eth_address = $2
+RETURNING $table_fields;

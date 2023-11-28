@@ -8,6 +8,9 @@ use anyhow::Context;
 use anyhow::Result;
 
 use crypto::keys::bip39::Mnemonic;
+use identity_eddsa_verifier::EdDSAJwsVerifier;
+use identity_iota::credential::Jws;
+use identity_iota::document::verifiable::JwsVerificationOptions;
 use identity_iota::iota::IotaDID;
 use identity_iota::iota::block::output::AliasOutput;
 use identity_iota::iota::IotaClientExt;
@@ -16,6 +19,7 @@ use identity_iota::iota::IotaIdentityClientExt;
 use identity_iota::iota::NetworkName;
 use identity_iota::storage::JwkDocumentExt;
 use identity_iota::storage::JwkMemStore;
+use identity_iota::storage::JwsSignatureOptions;
 use identity_iota::storage::Storage;
 use identity_iota::verification::MethodScope;
 
@@ -30,6 +34,7 @@ use iota_sdk::types::block::address::Bech32Address;
 use iota_sdk::types::block::address::Hrp;
 
 use crate::errors::ConnectorError;
+use crate::models::identity::Identity;
 
 pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
 
@@ -230,6 +235,28 @@ impl IotaState {
     }
 
     Ok(total_amount)
+  }
+
+  pub async fn sign_data(
+    &self,
+    identity: Identity,
+    payload: Vec<u8>,
+  ) -> Result<Jws, ConnectorError> {
+    log::info!("Resolving did...");
+    let document = self.resolve_did(identity.did.as_str()).await?;
+
+    log::info!("create_jws");
+    // Compute signature
+    let jws = document.create_jws(&self.storage, &identity.fragment, &payload, &JwsSignatureOptions::default()).await?;
+    // Verify signature
+    let _decoded_jws = document.verify_jws(
+        &jws,
+        None,
+        &EdDSAJwsVerifier::default(),
+        &JwsVerificationOptions::default(),
+    )?; 
+
+    Ok(jws)
   }
   
 }

@@ -1,1 +1,1 @@
-SELECT $table_fields FROM connector.identities WHERE eth_address = $1;
+SELECT $table_fields FROM connector.identities WHERE id = $1;

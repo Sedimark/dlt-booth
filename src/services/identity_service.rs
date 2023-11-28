@@ -6,13 +6,13 @@ pub async fn create_identity(
     eth_address: &String, 
 ) -> Result<String, ConnectorError>  {
     log::info!("creating identity");
-    let new_identity = Identity {
-        eth_address: eth_address.clone(),
-        did: "todo!()".to_string(),
-        fragment: "todo!()".to_string(),
-        vcredential: None,
-    };
-    let _ = pg_client.insert_identity(&new_identity).await?;
+    // let new_identity = Identity {
+    //     eth_address: eth_address.clone(),
+    //     did: "todo!()".to_string(),
+    //     fragment: "todo!()".to_string(),
+    //     vcredential: None,
+    // };
+    // let _ = pg_client.insert_identity(&new_identity).await?;
     
     Ok("hello".to_string())
 }
