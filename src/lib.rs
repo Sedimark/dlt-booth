@@ -9,3 +9,5 @@ pub mod models;
 pub mod dtos;
 pub mod utils;
 pub mod errors;
+
+pub const BASE_UPLOADS_DIR: &str = "./uploads/";

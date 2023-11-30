@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: APACHE-2.0
 
 use actix_web::{web, App, HttpServer, middleware::Logger};
-use connector::{controllers, utils::iota::IotaState, repository::postgres_repo::init};
+use connector::{controllers, utils::iota::IotaState, repository::postgres_repo::init, BASE_UPLOADS_DIR};
+use ipfs_api_backend_actix::IpfsClient;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -20,9 +21,12 @@ async fn main() -> anyhow::Result<()> {
     let iota_state = IotaState::init().await?;
     let iota_state_data = web::Data::new(iota_state);
     
+    std::fs::create_dir_all(BASE_UPLOADS_DIR)?;
+
     log::info!("Starting up on {}:{}", address, port);
     HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(IpfsClient::default())) // connect to the default IPFS API address http://localhost:5001
             .app_data(web::Data::new(db_pool.clone()))
             .app_data(iota_state_data.clone())
             .service(web::scope("/api")

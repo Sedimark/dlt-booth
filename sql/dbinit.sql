@@ -18,7 +18,7 @@ CREATE TABLE connector.assets (
     offering_path 	TEXT NOT NULL,
     asset_hash 		TEXT NOT NULL,
     offering_hash 	TEXT NOT NULL,
-    sign 			TEXT NOT NULL
+    sign 			TEXT NOT NULL,
 	publisher 		BIGINT NOT NULL REFERENCES connector.identities(id) ON DELETE RESTRICT,
 	UNIQUE (nft_address, cid, alias)
 );

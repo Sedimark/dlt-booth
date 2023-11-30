@@ -3,4 +3,5 @@
 // SPDX-License-Identifier: APACHE-2.0
 
 pub mod identity;
+pub mod asset;
 pub mod download_request;

@@ -1,1 +1,1 @@
-SELECT $table_fields FROM connector.assets WHERE alias = $1;
+SELECT $table_fields FROM connector.assets WHERE id = $1;

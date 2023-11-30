@@ -97,8 +97,7 @@ impl IotaState {
     let client = Client::builder()
     .with_node(&node_url)?
     .finish()
-    .await
-    .map_err(|e| ConnectorError::from(e))?;
+    .await?;
 
     // let address: Address = Self::get_address_with_funds(&client, stronghold_storage.as_secret_manager(), faucet_url.as_str())
     // .await

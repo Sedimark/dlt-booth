@@ -24,6 +24,20 @@ pub enum ConnectorError {
     #[error("Credenital Error")]
     CredenitalError(#[from] identity_iota::credential::Error),
     
+    #[error("Persist File Error")]
+    PersistFileError,
+    #[error("Creating Folder Error")]
+    CreatingUploadFolder(#[from] std::io::Error),
+    #[error("File Name Missing Error")]
+    FileNameMissing,
+    #[error("File Upload Error")]
+    FileUploadError,
+    #[error("Ipfs Upload Error")]
+    IpfsUploadError(#[from] ipfs_api_backend_actix::Error),
+    #[error("serde_json Error")]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error("Missing Id Error")]
+    IdMissing,
 
     // Database Errors
     #[error("Row not found")]   
@@ -56,6 +70,13 @@ impl ResponseError for ConnectorError {
             ConnectorError::JwkError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::CredentialMissing => StatusCode::BAD_REQUEST,
             ConnectorError::CredenitalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::PersistFileError => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::CreatingUploadFolder(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::FileNameMissing => StatusCode::BAD_REQUEST,
+            ConnectorError::FileUploadError => StatusCode::BAD_REQUEST,
+            ConnectorError::IpfsUploadError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
 
         }
     }

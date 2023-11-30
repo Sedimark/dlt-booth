@@ -8,17 +8,11 @@ use deadpool_postgres::Pool;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::dtos::{IdentityRequest, CredentialRequest, SignDataRequest, PresentationRequest};
+use crate::dtos::{IdentityRequest, CredentialRequest, SignDataRequest, PresentationRequest, QueryEthAddress};
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
 use crate::utils::iota::IotaState;
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Info {
-    eth_address: String,
-}
 
 #[post("")] 
 async fn create_identity(
@@ -44,7 +38,7 @@ async fn create_identity(
 
 #[get("")]
 async fn get_identity(
-    query_params: web::Query<Info>, 
+    query_params: web::Query<QueryEthAddress>, 
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller get_identity");
@@ -56,7 +50,7 @@ async fn get_identity(
 
 #[patch("")] // TODO: since we modify just the credential, is the patch correct? 
 async fn patch_identity(
-    query_params: web::Query<Info>, 
+    query_params: web::Query<QueryEthAddress>, 
     req_body: web::Json<CredentialRequest>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {

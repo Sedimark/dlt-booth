@@ -9,13 +9,14 @@ use tokio_pg_mapper_derive::PostgresMapper;
 #[derive(Debug, Serialize, Deserialize, PostgresMapper)]
 #[pg_mapper(table = "assets")]
 pub struct Asset {
-    nft_address: String, 	
-    cid: String,
-    alias: String,
-    asset_path: String,
-    offering_path: String,
-    asset_hash: String,
-    offering_hash: String,
-    sign: String,
-	publisher: String,
+    pub id: Option<i64>,
+    pub nft_address: Option<String>,
+    pub cid: String,
+    pub alias: String,
+    pub asset_path: String,
+    pub offering_path: String,
+    pub asset_hash: String,
+    pub offering_hash: String,
+    pub sign: String,
+	pub publisher: i64,
 }
