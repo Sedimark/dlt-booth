@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: APACHE-2.0
 
-use actix_web::{web, App, HttpServer, middleware::Logger};
+use actix_web::{web, App, HttpServer, middleware::Logger, http};
+use actix_cors::Cors;
 use connector::{controllers, utils::iota::IotaState, repository::postgres_repo::init, BASE_UPLOADS_DIR};
 use ipfs_api_backend_actix::IpfsClient;
 
@@ -25,15 +26,23 @@ async fn main() -> anyhow::Result<()> {
 
     log::info!("Starting up on {}:{}", address, port);
     HttpServer::new(move || {
+        let cors = Cors::default()
+        .allow_any_origin() // TODO: define who is allowed
+        .allowed_methods(vec!["GET", "POST", "PATCH"])
+        .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+        .allowed_header(http::header::CONTENT_TYPE)
+        .max_age(3600);
+    
         App::new()
-            .app_data(web::Data::new(IpfsClient::default())) // connect to the default IPFS API address http://localhost:5001
-            .app_data(web::Data::new(db_pool.clone()))
-            .app_data(iota_state_data.clone())
-            .service(web::scope("/api")
-                .configure(controllers::identities_controller::scoped_config)
-                .configure(controllers::assets_controller::scoped_config)
-            )
-            .wrap(Logger::default())
+        .app_data(web::Data::new(IpfsClient::default())) // connect to the default IPFS API address http://localhost:5001
+        .app_data(web::Data::new(db_pool.clone()))
+        .app_data(iota_state_data.clone())
+        .service(web::scope("/api")
+            .configure(controllers::identities_controller::scoped_config)
+            .configure(controllers::assets_controller::scoped_config)
+        )
+        .wrap(cors)
+        .wrap(Logger::default())
     })
     .bind((address, port))?
     .run()
