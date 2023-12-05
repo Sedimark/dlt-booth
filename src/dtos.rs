@@ -24,6 +24,7 @@ pub struct CredentialRequest {
 #[serde(rename_all = "camelCase")]
 pub struct SignDataRequest {
     pub payload: String,
+    pub nonce: Option<String>
 }
 
 #[derive(Debug, Deserialize, Serialize)]

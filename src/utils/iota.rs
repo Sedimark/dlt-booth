@@ -245,19 +245,26 @@ impl IotaState {
     &self,
     identity: Identity,
     payload: Vec<u8>,
+    nonce: &Option<String>
   ) -> Result<Jws, ConnectorError> {
     log::info!("Resolving did...");
     let document = self.resolve_did(identity.did.as_str()).await?;
 
     log::info!("create_jws");
+
+    let (jws_signature_options, jws_verification_options) = match nonce {
+        Some(nonce) => (JwsSignatureOptions::default().nonce(nonce), JwsVerificationOptions::default().nonce(nonce)),
+        None =>  (JwsSignatureOptions::default(), JwsVerificationOptions::default()),
+    };
+
     // Compute signature
-    let jws = document.create_jws(&self.storage, &identity.fragment, &payload, &JwsSignatureOptions::default()).await?;
+    let jws = document.create_jws(&self.storage, &identity.fragment, &payload, &jws_signature_options).await?;
     // Verify signature
     let _decoded_jws = document.verify_jws(
         &jws,
         None,
         &EdDSAJwsVerifier::default(),
-        &JwsVerificationOptions::default(),
+        &jws_verification_options,
     )?; 
 
     Ok(jws)

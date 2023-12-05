@@ -31,9 +31,9 @@ async fn create_identity(
         fragment: fragment,
         vcredential: None,
     };
-    let _ = pg_client.insert_identity(&new_identity).await?;
+    let created_identity = pg_client.insert_identity(&new_identity).await?;
 
-    Ok(HttpResponse::Ok().json(new_identity))
+    Ok(HttpResponse::Ok().json(created_identity))
 }
 
 #[get("")]
@@ -71,7 +71,7 @@ async fn sign_data(
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let identity_id = path.into_inner();    
     let identity = pg_client.get_identity(identity_id).await?;
-    let jws = iota_state.sign_data(identity, req_body.payload.clone().into_bytes()).await?;
+    let jws = iota_state.sign_data(identity, req_body.payload.clone().into_bytes(), &req_body.nonce).await?;
 
     Ok(HttpResponse::Ok().json(json!({"ssiSignature": jws.as_str()})))
 }
