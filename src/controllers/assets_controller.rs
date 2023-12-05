@@ -142,6 +142,40 @@ async fn get_asset_info(
     Ok(HttpResponse::Ok().json(asset))
 }
 
+/// update the nft address
+#[patch("/{asset_id}")]
+async fn patch_asset(
+    path: web::Path<i64>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, ConnectorError> {
+    todo!()
+}
+
+#[post("/{asset_id}/challenge")]
+async fn get_asset_challenge(
+    path: web::Path<i64>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, ConnectorError> {
+    todo!()
+}
+
+#[post("/{asset_id}/download")]
+async fn download_asset(
+    path: web::Path<i64>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, ConnectorError> {
+    todo!()
+}
+
+#[get("/{asset_id}/encrypt-cid")]
+async fn encrypt_asset_cid(
+    path: web::Path<i64>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, ConnectorError> {
+    todo!()
+}
+
+
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -151,5 +185,6 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
         .service(upload_asset)
         .service(get_asset_info_from_alias)   
         .service(get_asset_info)       
+        .service(patch_asset)
     );
 }
