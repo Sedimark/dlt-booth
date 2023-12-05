@@ -5,6 +5,7 @@
 use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
 use deadpool_postgres::PoolError;
 use reqwest::StatusCode;
+use serde_json::json;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ConnectorError {
@@ -55,7 +56,9 @@ impl ResponseError for ConnectorError {
     fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code())
             .insert_header(ContentType::html())
-            .body(self.to_string())
+            .json(json!({
+                "error": self.to_string()
+            }))
     }
 
     fn status_code(&self) -> StatusCode {
