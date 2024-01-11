@@ -160,7 +160,7 @@ async fn get_asset_challenge(
 }
 
 #[post("/{asset_id}/download")]
-async fn download_asset(
+async fn download_asset( // todo: this should be a protected route
     path: web::Path<i64>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
@@ -186,5 +186,8 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
         .service(get_asset_info_from_alias)   
         .service(get_asset_info)       
         .service(patch_asset)
+        // .service(get_asset_challenge)
+        // .service(download_asset)
+        // .service(encrypt_asset_cid)
     );
 }

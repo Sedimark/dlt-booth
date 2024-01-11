@@ -22,8 +22,10 @@ pub enum ConnectorError {
     DidError(#[from] identity_iota::did::Error),
     #[error("Jwk error")]
     JwkError(#[from]identity_iota::storage::JwkStorageDocumentError),
-    #[error("Credenital Error")]
-    CredenitalError(#[from] identity_iota::credential::Error),
+    #[error("Credential Error")]
+    CredentialError(#[from] identity_iota::credential::Error),
+    #[error("Verification method Error")]
+    VerificationMethodError(#[from] identity_iota::verification::Error),
     
     #[error("Persist File Error")]
     PersistFileError,
@@ -72,7 +74,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::DidError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::JwkError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::CredentialMissing => StatusCode::BAD_REQUEST,
-            ConnectorError::CredenitalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::CredentialError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::PersistFileError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::CreatingUploadFolder(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::FileNameMissing => StatusCode::BAD_REQUEST,
@@ -80,6 +82,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::IpfsUploadError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::VerificationMethodError(_) => StatusCode::INTERNAL_SERVER_ERROR,
 
         }
     }

@@ -4,11 +4,16 @@
 // SPDX-FileCopyrightText: 2023 Fondazione LINKS
 // SPDX-License-Identifier: APACHE-2.0
 
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
 use anyhow::Context;
 use anyhow::Result;
 
 use crypto::keys::bip39::Mnemonic;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
+use identity_iota::core::FromJson;
+use identity_iota::core::ToJson;
 use identity_iota::credential::Jws;
 use identity_iota::credential::Jwt;
 use identity_iota::credential::JwtPresentationOptions;
@@ -26,8 +31,12 @@ use identity_iota::storage::JwkDocumentExt;
 use identity_iota::storage::JwkMemStore;
 use identity_iota::storage::JwsSignatureOptions;
 use identity_iota::storage::Storage;
+use identity_iota::verification::MethodBuilder;
+use identity_iota::verification::MethodData;
 use identity_iota::verification::MethodScope;
 
+use identity_iota::verification::MethodType;
+use identity_iota::verification::VerificationMethod;
 use identity_iota::verification::jws::JwsAlgorithm;
 use identity_stronghold::StrongholdStorage;
 use iota_sdk::client::Password;
@@ -160,6 +169,22 @@ impl IotaState {
       MethodScope::VerificationMethod,
     )
     .await?;
+    
+  
+    let mut properties = BTreeMap::new();
+    properties.insert("blockchainAccountId".to_string(), serde_json::Value::String("eip:1:ciao".to_string()));
+
+    let id = document.id().to_url().join("#ethAddress")?;
+
+    log::info!("id: {}", id.to_string());
+    // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
+    let method = MethodBuilder::new(properties)
+      .id( id )
+      .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
+      .controller(document.core_document().id().to_owned())
+      .data(MethodData::PublicKeyMultibase("".into()))
+      .build().unwrap();
+    document.insert_method(method, MethodScope::VerificationMethod)?;
 
     Ok((document, fragment))
   }
