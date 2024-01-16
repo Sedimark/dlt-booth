@@ -13,7 +13,7 @@ use serde_json::json;
 
 use crate::BASE_UPLOADS_DIR;
 use crate::errors::ConnectorError;
-use crate::dtos::{UploadForm, AssetUploadRequest, QueryEthAddress, QueryAssetAlias};
+use crate::dtos::{UploadForm, AssetUploadRequest, QueryEthAddress, QueryAssetAlias, AssetUpdateRequest};
 use crate::models::asset::Asset;
 use crate::repository::asset_operations::AssetExt;
 use crate::repository::identity_operations::IdentityExt;
@@ -24,7 +24,7 @@ use blake2::{Blake2b512, Blake2s256, Digest};
 use base64::{Engine as _, engine::general_purpose};
 
 
-#[post("")] // TODO: improve request size 
+#[post("/assets")] // TODO: improve request size 
 async fn upload_asset(
     MultipartForm(form): MultipartForm<UploadForm>,
     ipfs_client: web::Data<IpfsClient>,
@@ -106,7 +106,7 @@ async fn upload_asset(
     Ok(HttpResponse::Ok().json(asset))
 }
 
-#[get("/aliases")]
+#[get("/assets/aliases")]
 async fn get_asset_aliases(
     query_params: web::Query<QueryEthAddress>, 
     db_pool: web::Data<Pool>,
@@ -117,7 +117,7 @@ async fn get_asset_aliases(
     Ok(HttpResponse::Ok().json(json!({"aliases": res})))
 }
 
-#[get("")]
+#[get("/assets")]
 async fn get_asset_info_from_alias(
     query_params: web::Query<QueryAssetAlias>, 
     db_pool: web::Data<Pool>,
@@ -129,12 +129,12 @@ async fn get_asset_info_from_alias(
     Ok(HttpResponse::Ok().json(asset))
 }
 
-#[get("/{asset_id}")]
+#[get("/assets/{asset_id}")]
 async fn get_asset_info(
     path: web::Path<i64>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
-    log::info!("controller get_asset_info_from_alias");
+    log::info!("controller get_asset_info");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let asset_id = path.into_inner();    
     let asset = pg_client.get_asset_info(asset_id).await?;
@@ -143,51 +143,58 @@ async fn get_asset_info(
 }
 
 /// update the nft address
-#[patch("/{asset_id}")]
+// #[patch("/assets/{asset_id}")]
+#[patch("/assets")]
 async fn patch_asset(
-    path: web::Path<i64>,
+    // path: web::Path<i64>,
+    query_params: web::Query<QueryAssetAlias>, 
+    req_body: web::Json<AssetUpdateRequest>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
-    todo!()
+    log::info!("controller patch_asset");
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let asset = pg_client.set_nft_address(&query_params.alias, &req_body.nft_address).await?;
+
+    Ok(HttpResponse::Ok().json(asset))
 }
 
-#[post("/{asset_id}/challenge")]
+#[post("/assets/{asset_id}/challenge")]
 async fn get_asset_challenge(
     path: web::Path<i64>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
+    log::info!("controller get_asset_challenge");
     todo!()
 }
 
-#[post("/{asset_id}/download")]
+#[post("/assets/{asset_id}/download")]
 async fn download_asset( // todo: this should be a protected route
     path: web::Path<i64>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
+    log::info!("controller download_asset");
     todo!()
 }
 
-#[get("/{asset_id}/encrypt-cid")]
+#[get("/assets/{asset_id}/encrypt-cid")]
 async fn encrypt_asset_cid(
     path: web::Path<i64>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
+    log::info!("controller encrypt_asset_cid");
     todo!()
 }
 
 
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        // prefixes all resources and routes attached to it...
-        web::scope("/assets")
-        .service(get_asset_aliases)     
-        .service(upload_asset)
-        .service(get_asset_info_from_alias)   
-        .service(get_asset_info)       
-        .service(patch_asset)
-        // .service(get_asset_challenge)
-        // .service(download_asset)
-        // .service(encrypt_asset_cid)
-    );
+    cfg
+    .service(get_asset_aliases)     
+    .service(upload_asset)
+    .service(get_asset_info_from_alias)   
+    .service(get_asset_info)       
+    .service(patch_asset);
+    // .service(get_asset_challenge)
+    // .service(download_asset)
+    // .service(encrypt_asset_cid)
 }

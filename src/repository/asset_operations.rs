@@ -87,9 +87,21 @@ impl AssetExt for PostgresClient {
         Ok(results)
     }
 
-    async fn set_nft_address(&self, eth_address: &String, credential: &String) -> Result<Asset, ConnectorError> {
-        todo!();
-        
+    async fn set_nft_address(
+        &self, 
+        alias: &String,
+        nft_address: &String, 
+    ) -> Result<Asset, ConnectorError> {
+        log::info!("set nft address");
+        let _stmt = include_str!("../../sql/asset_update_nft_addr.sql");
+        let _stmt = _stmt.replace("$table_fields", &Asset::sql_table_fields());
+        let stmt = self.prepare(&_stmt).await?;
+
+        match self.query_one(&stmt, &[&nft_address, &alias])
+        .await {
+            Ok(row) => Asset::from_row_ref(&row).map_err(|e| ConnectorError::from(e)),
+            Err(_) =>  Err(ConnectorError::RowNotFound),
+        }
     }
     
 }

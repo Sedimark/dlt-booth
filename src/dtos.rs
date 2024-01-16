@@ -50,6 +50,13 @@ pub struct AssetUploadRequest {
     pub alias: String,
 }
 
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetUpdateRequest {
+    pub nft_address: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryEthAddress {
