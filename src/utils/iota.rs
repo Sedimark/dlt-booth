@@ -46,6 +46,7 @@ use iota_sdk::client::secret::stronghold::StrongholdSecretManager;
 use iota_sdk::client::Client;
 use iota_sdk::types::block::address::Bech32Address;
 use iota_sdk::types::block::address::Hrp;
+use serde_json::json;
 
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
@@ -136,9 +137,10 @@ impl IotaState {
   /// and exists for convenient calling from the other examples.
   pub async fn create_did(
     &self,
+    eth_address: Option<String>,
   ) -> Result<(IotaDocument, String), ConnectorError> {
         
-    let (document, fragment): (IotaDocument, String) = Self::create_did_document( &self).await?;
+    let (document, fragment): (IotaDocument, String) = Self::create_did_document( &self, eth_address).await?;
 
     let alias_output: AliasOutput = self.client.new_did_output(self.address.into_inner(), document, None).await?;
 
@@ -155,7 +157,8 @@ impl IotaState {
   /// Its functionality is equivalent to the "create DID" example
   /// and exists for convenient calling from the other examples.
   async fn create_did_document(
-    &self
+    &self,
+    eth_address: Option<String>,
   ) -> Result<(IotaDocument, String), ConnectorError> {
     let network_name: NetworkName = self.client.network_name().await?;
     let mut document: IotaDocument = IotaDocument::new(&network_name);
@@ -170,22 +173,24 @@ impl IotaState {
     )
     .await?;
     
-  
-    let mut properties = BTreeMap::new();
-    properties.insert("blockchainAccountId".to_string(), serde_json::Value::String("eip:1:ciao".to_string()));
+    eth_address.map(|eth_address| -> Result<(), ConnectorError> {
+      let mut properties = BTreeMap::new();
+      properties.insert("blockchainAccountId".to_string(), json!(format!("eip:1:{}", eth_address)));
 
-    let id = document.id().to_url().join("#ethAddress")?;
+      let id = document.id().to_url().join("#ethAddress")?;
 
-    log::info!("id: {}", id.to_string());
-    // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
-    let method = MethodBuilder::new(properties)
-      .id( id )
-      .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
-      .controller(document.core_document().id().to_owned())
-      .data(MethodData::PublicKeyMultibase("".into()))
-      .build().unwrap();
-    document.insert_method(method, MethodScope::VerificationMethod)?;
-
+      log::info!("id: {}", id.to_string());
+      // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
+      let method = MethodBuilder::new(properties)
+        .id( id )
+        .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
+        .controller(document.core_document().id().to_owned())
+        .data(MethodData::PublicKeyMultibase("".into()))
+        .build().unwrap();
+      document.insert_method(method, MethodScope::VerificationMethod)?;
+      Ok(())
+    });
+    
     Ok((document, fragment))
   }
 

@@ -22,7 +22,7 @@ async fn create_identity(
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller create_identity");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
-    let (doc, fragment) = iota_state.create_did().await?;
+    let (doc, fragment) = iota_state.create_did(Some(req_body.eth_address.clone())).await?;
 
     let new_identity = Identity {
         id: None,
