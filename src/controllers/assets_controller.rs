@@ -3,26 +3,40 @@
 // SPDX-License-Identifier: APACHE-2.0
 
 use std::fs::File;
+use std::str::FromStr;
+use std::sync::Arc;
 
-use actix_web::{get, patch, post, Responder};
+use actix_web::web::ReqData;
+use actix_web::{get, patch, post, HttpMessage, HttpRequest, Responder};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
+use ethers::abi::Address;
+use ethers::providers::{Http, Provider};
+use ethers::types::{Bytes, Signature};
+use hex::FromHex;
 use identity_iota::storage::{JwkDocumentExt, JwsSignatureOptions};
 use ipfs_api_backend_actix::{IpfsClient, IpfsApi};
 use serde_json::json;
 
+use crate::middlewares::ver_presentation_jwt::verify_presentation_jwt;
+
 use crate::BASE_UPLOADS_DIR;
 use crate::errors::ConnectorError;
-use crate::dtos::{UploadForm, AssetUploadRequest, QueryEthAddress, QueryAssetAlias, AssetUpdateRequest};
+use crate::dtos::{AssetUpdateRequest, ProofOfPurchaseRequest, QueryAssetAlias, QueryEthAddress, UploadForm};
 use crate::models::asset::Asset;
 use crate::repository::asset_operations::AssetExt;
 use crate::repository::identity_operations::IdentityExt;
 use crate::utils::iota::IotaState;
 use actix_multipart::form::MultipartForm;
 use uuid::Uuid;
-use blake2::{Blake2b512, Blake2s256, Digest};
+use blake2::{Blake2b512, Digest};
 use base64::{Engine as _, engine::general_purpose};
-
+use actix_web::{
+    App, Error,
+    dev::{ServiceRequest, ServiceResponse, Service as _},
+};
+use actix_web_lab::middleware::from_fn;
+use crate::contracts::erc721base::ERC721Base;
 
 #[post("/assets")] // TODO: improve request size 
 async fn upload_asset(
@@ -137,9 +151,9 @@ async fn get_asset_info(
     log::info!("controller get_asset_info");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let asset_id = path.into_inner();    
-    let asset = pg_client.get_asset_info(asset_id).await?;
+    let asset_info = pg_client.get_asset_info(asset_id).await?;
 
-    Ok(HttpResponse::Ok().json(asset))
+    Ok(HttpResponse::Ok().json(asset_info))
 }
 
 /// update the nft address
@@ -158,6 +172,7 @@ async fn patch_asset(
     Ok(HttpResponse::Ok().json(asset))
 }
 
+// TODO: remove this 
 #[post("/assets/{asset_id}/challenge")]
 async fn get_asset_challenge(
     path: web::Path<i64>,
@@ -167,15 +182,46 @@ async fn get_asset_challenge(
     todo!()
 }
 
-#[post("/assets/{asset_id}/download")]
-async fn download_asset( // todo: this should be a protected route
-    path: web::Path<i64>,
+#[get("/assets/download", wrap = "from_fn(verify_presentation_jwt)")]
+async fn download_asset(
+    req: HttpRequest,
+    query_params: web::Query<QueryAssetAlias>, 
     db_pool: web::Data<Pool>,
+    eth_provider: web::Data<Arc<Provider<Http>>>,
+    opt_pop_req: Option<ReqData<ProofOfPurchaseRequest>>,
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller download_asset");
-    todo!()
+
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let asset_info = pg_client.get_asset_info_from_alias(&query_params.alias).await?;
+
+    let pop_req = opt_pop_req.ok_or(ConnectorError::MiddlewareError("Missing Proof of purchase request".to_string()))?.into_inner();
+    log::info!("{:#?},", pop_req);
+
+    // Verify proof of purchase
+    let address: Address = asset_info.nft_address.ok_or(ConnectorError::NftAddressMissing)?.parse().map_err(|_| ConnectorError::AddressRecoveryError)?;
+    let client = eth_provider.get_ref().clone();
+    let contract = ERC721Base::new(address, client);
+
+    // Convert the signature and nonce to bytes
+    let eth_sig_bytes = Bytes::from(Vec::from_hex(pop_req.eth_signature.strip_prefix("0x").ok_or(ConnectorError::StringToBytesError)?).map_err(|_| ConnectorError::StringToBytesError)?);
+    let nonce_bytes = Bytes::from(pop_req.nonce.into_bytes());
+
+    // Call verifyPoP on the contract
+    let pop = contract.verify_po_p(eth_sig_bytes, nonce_bytes).await.map_err(|_| ConnectorError::ContractError)?;
+
+    if pop == false {
+        log::info!("Proof of purchase failed, user not allower to download asset");
+        return Ok(HttpResponse::Unauthorized().json(json!({"error": "Proof of purchase failed"})));
+    }
+    
+    // Return the file
+    let file = actix_files::NamedFile::open_async(asset_info.asset_path).await?;
+    Ok(file.into_response(&req))
+
 }
 
+//TODO: is this still needed? 
 #[get("/assets/{asset_id}/encrypt-cid")]
 async fn encrypt_asset_cid(
     path: web::Path<i64>,
@@ -188,13 +234,16 @@ async fn encrypt_asset_cid(
 
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
+
+    // order: first come first served
+
     cfg
     .service(get_asset_aliases)     
     .service(upload_asset)
     .service(get_asset_info_from_alias)   
-    .service(get_asset_info)       
-    .service(patch_asset);
+    .service(download_asset)       
+    .service(patch_asset)
+    .service(get_asset_info);
     // .service(get_asset_challenge)
-    // .service(download_asset)
     // .service(encrypt_asset_cid)
 }

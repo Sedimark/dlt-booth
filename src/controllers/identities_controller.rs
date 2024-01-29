@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: APACHE-2.0
 
+use std::collections::BTreeMap;
+
 use actix_web::{get, patch, post};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
-use serde::Deserialize;
 use serde_json::json;
 
 use crate::dtos::{IdentityRequest, CredentialRequest, SignDataRequest, PresentationRequest, QueryEthAddress};
@@ -76,6 +77,7 @@ async fn sign_data(
     Ok(HttpResponse::Ok().json(json!({"ssiSignature": jws.as_str()})))
 }
 
+//TODO: pass also expiration time
 #[post("/{identity_id}/gen-presentation")] 
 async fn gen_presentation(
     path: web::Path<i64>,
@@ -87,7 +89,16 @@ async fn gen_presentation(
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let identity_id = path.into_inner();    
     let identity = pg_client.get_identity(identity_id).await?;
-    let presentetion_jwt = iota_state.gen_presentation(identity, req_body.challenge.clone()).await?;
+
+    let wallet_signature_claim = match req_body.eth_signature.clone() {
+        Some(eth_signature) => {
+            let mut wallet_signature_claim = BTreeMap::new();
+            wallet_signature_claim.insert("walletSignature".to_string(), serde_json::Value::String(eth_signature)); 
+            Some(wallet_signature_claim)
+        }
+        None => None,
+    };
+    let presentetion_jwt = iota_state.gen_presentation(identity, req_body.challenge.clone(), wallet_signature_claim).await?;
 
     Ok(HttpResponse::Ok().json(json!({"presentation": presentetion_jwt.as_str()})))
 }

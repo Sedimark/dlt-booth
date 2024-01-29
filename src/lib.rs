@@ -8,6 +8,8 @@ pub mod repository;
 pub mod models;
 pub mod dtos;
 pub mod utils;
+pub mod middlewares;
+pub mod contracts;
 pub mod errors;
 
 pub const BASE_UPLOADS_DIR: &str = "./uploads/";

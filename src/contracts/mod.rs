@@ -1,0 +1,1 @@
+pub mod erc721base; // erc721base.rs is a auto-generated file

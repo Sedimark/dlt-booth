@@ -6,7 +6,6 @@ use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
 use deadpool_postgres::PoolError;
 use reqwest::StatusCode;
 use serde_json::json;
-
 #[derive(thiserror::Error, Debug)]
 pub enum ConnectorError {
 
@@ -21,12 +20,14 @@ pub enum ConnectorError {
     #[error("Did Error")]
     DidError(#[from] identity_iota::did::Error),
     #[error("Jwk error")]
-    JwkError(#[from]identity_iota::storage::JwkStorageDocumentError),
+    JwkError(#[from] identity_iota::storage::JwkStorageDocumentError),
     #[error("Credential Error")]
     CredentialError(#[from] identity_iota::credential::Error),
     #[error("Verification method Error")]
     VerificationMethodError(#[from] identity_iota::verification::Error),
-    
+    #[error("Jwt Verification Error")]
+    JwtValidationError(#[from] identity_iota::credential::JwtValidationError),
+
     #[error("Persist File Error")]
     PersistFileError,
     #[error("Creating Folder Error")]
@@ -41,6 +42,20 @@ pub enum ConnectorError {
     SerdeJsonError(#[from] serde_json::Error),
     #[error("Missing Id Error")]
     IdMissing,
+    #[error("Pending challenge Error")]
+    ChallengePendingError,
+    #[error("Verification method for ethereum address verification not found")]
+    EthMethodNotFound,
+    #[error("Verification method type is not EcdsaSecp256k1RecoveryMethod2020")]
+    InvalidVerificationMethodType,
+    #[error("Nft address of the asset is missing")]
+    NftAddressMissing,
+    #[error("Address recovery error")]
+    AddressRecoveryError,
+    #[error("String to ethers::types::Bytes error")]
+    StringToBytesError,
+    #[error("Contract error")]
+    ContractError,
 
     // Database Errors
     #[error("Row not found")]   
@@ -51,6 +66,8 @@ pub enum ConnectorError {
     TokioPostgresMapperError(#[from] tokio_pg_mapper::Error),
     #[error("Pool error")]
     PoolError(#[from] PoolError),
+    #[error("Middleware error: {0}")]
+    MiddlewareError(String),
 }   
 
 impl ResponseError for ConnectorError {
@@ -83,6 +100,15 @@ impl ResponseError for ConnectorError {
             ConnectorError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::VerificationMethodError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::JwtValidationError(_) => StatusCode::INTERNAL_SERVER_ERROR, // Update the match arm
+            ConnectorError::ChallengePendingError => StatusCode::BAD_REQUEST,
+            ConnectorError::MiddlewareError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::EthMethodNotFound => StatusCode::BAD_REQUEST,
+            ConnectorError::InvalidVerificationMethodType => StatusCode::BAD_REQUEST,
+            ConnectorError::NftAddressMissing => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::AddressRecoveryError => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::StringToBytesError => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ContractError => StatusCode::INTERNAL_SERVER_ERROR,
 
         }
     }

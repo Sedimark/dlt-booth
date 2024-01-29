@@ -24,8 +24,8 @@ CREATE TABLE connector.assets (
 );
 
 CREATE TABLE connector.download_requests (
-  	nonce 				UUID PRIMARY KEY,
-  	asset_id 			BIGINT NOT NULL REFERENCES connector.assets(id) ON DELETE RESTRICT,
+  	nonce 				TEXT PRIMARY KEY,
+  	-- asset_id 		BIGINT NOT NULL REFERENCES connector.assets(id) ON DELETE RESTRICT,
   	requester_did 		TEXT NOT NULL,
   	-- expiration		TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   	expiration			TEXT NOT NULL

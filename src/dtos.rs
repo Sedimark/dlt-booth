@@ -31,6 +31,7 @@ pub struct SignDataRequest {
 #[serde(rename_all = "camelCase")]
 pub struct PresentationRequest {
     pub challenge: String,
+    pub eth_signature: Option<String>
 }
 
 #[derive(Debug, MultipartForm)]
@@ -67,4 +68,19 @@ pub struct QueryEthAddress {
 #[serde(rename_all = "camelCase")]
 pub struct QueryAssetAlias {
     pub alias: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChallengeResponse {
+    pub nonce: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ProofOfPurchaseRequest {
+    pub nonce: String,
+    pub eth_address: String,
+    pub eth_signature: String,
+    pub did: String,
 }

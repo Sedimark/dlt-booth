@@ -13,6 +13,7 @@ use anyhow::Result;
 use crypto::keys::bip39::Mnemonic;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::core::FromJson;
+use identity_iota::core::Object;
 use identity_iota::core::ToJson;
 use identity_iota::credential::Jws;
 use identity_iota::credential::Jwt;
@@ -46,6 +47,7 @@ use iota_sdk::client::secret::stronghold::StrongholdSecretManager;
 use iota_sdk::client::Client;
 use iota_sdk::types::block::address::Bech32Address;
 use iota_sdk::types::block::address::Hrp;
+use serde_json::Value;
 use serde_json::json;
 
 use crate::errors::ConnectorError;
@@ -175,7 +177,7 @@ impl IotaState {
     
     eth_address.map(|eth_address| -> Result<(), ConnectorError> {
       let mut properties = BTreeMap::new();
-      properties.insert("blockchainAccountId".to_string(), json!(format!("eip:1:{}", eth_address)));
+      properties.insert("blockchainAccountId".to_string(), json!(format!("eip155:1:{}", eth_address)));
 
       let id = document.id().to_url().join("#ethAddress")?;
 
@@ -304,6 +306,7 @@ impl IotaState {
     &self,
     identity: Identity,
     challenge: String,
+    wallet_signature_claim: Option<BTreeMap<String, Value>>
   ) -> Result<Jwt, ConnectorError> {
     log::info!("Resolving did...");
     let document = self.resolve_did(identity.did.as_str()).await?;
@@ -312,10 +315,20 @@ impl IotaState {
 
     log::info!("gen_presentation");
     // Create an unsigned Presentation from the previously issued Verifiable Credential.
+
     let presentation: Presentation<Jwt> =
     PresentationBuilder::new(document.id().to_url().into(), Default::default())
       .credential(credential_jwt)
       .build()?;
+  
+   let jwt_presentation_options = match wallet_signature_claim {
+      Some(wallet_signature_claim) => {
+        let mut jwt_presentation_options = JwtPresentationOptions::default();
+        jwt_presentation_options.custom_claims = Some(wallet_signature_claim); 
+        jwt_presentation_options
+      },
+      None => JwtPresentationOptions::default(),
+    };
 
     // Create a JWT verifiable presentation using the holder's verification method
     // and include the requested challenge and expiry timestamp.
@@ -325,13 +338,11 @@ impl IotaState {
         &self.storage,
         &identity.fragment,
         &JwsSignatureOptions::default().nonce(challenge.to_owned()),
-        &JwtPresentationOptions::default() // .expiration_date(expires),
+        &jwt_presentation_options // .expiration_date(expires), // TODO: add expiration handling
       )
       .await?; 
-
+    log::info!("{:?}",presentation_jwt);
     Ok(presentation_jwt)
   }
-  
-
   
 }
