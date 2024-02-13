@@ -112,8 +112,8 @@ pub async fn verify_presentation_jwt(
         .as_str()
         .ok_or::<ConnectorError>(ConnectorError::MiddlewareError("couldn't convert Value to str".to_string()).into())?;
 
-        // Extract wallet signature from the presentation
-        log::info!("{}", eth_signature);
+        // Extract wallet signature from the presentation 
+        log::info!("{}", eth_signature); // TODO verify the signature? 
 
         // TODO: move in ver_proof_of_purchase middleware, just pass the DecodedJwtPresentation and the holder document
         req.extensions_mut()

@@ -221,17 +221,6 @@ async fn download_asset(
 
 }
 
-//TODO: is this still needed? 
-#[get("/assets/{asset_id}/encrypt-cid")]
-async fn encrypt_asset_cid(
-    path: web::Path<i64>,
-    db_pool: web::Data<Pool>,
-) -> Result<HttpResponse, ConnectorError> {
-    log::info!("controller encrypt_asset_cid");
-    todo!()
-}
-
-
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
 
