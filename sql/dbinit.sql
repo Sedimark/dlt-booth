@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2024 Fondazione LINKS
+
+-- SPDX-License-Identifier: GPL-3.0-or-later
+
 CREATE SCHEMA IF NOT EXISTS connector;
 
 CREATE TABLE connector.identities (

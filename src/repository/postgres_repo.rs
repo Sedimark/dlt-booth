@@ -1,5 +1,8 @@
-use anyhow::Result;
+// SPDX-FileCopyrightText: 2024 Fondazione LINKS
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
+use anyhow::Result;
 
 use deadpool_postgres::{ManagerConfig, RecyclingMethod, Pool};
 use tokio_postgres::NoTls;

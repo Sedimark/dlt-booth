@@ -1,8 +1,9 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-// SPDX-FileCopyrightText: 2023 Fondazione LINKS
-// SPDX-License-Identifier: APACHE-2.0
+// SPDX-FileCopyrightText: 2024 Fondazione LINKS
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
 use std::str::FromStr;

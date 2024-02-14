@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Fondazione LINKS
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use async_trait::async_trait;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use crate::{models::{identity::Identity, asset::Asset}, errors::ConnectorError};
