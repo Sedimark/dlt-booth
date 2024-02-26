@@ -5,7 +5,7 @@
 Connector repository. It enable users to interacts with the tangle, with IPFS and with other users. Sample implementation for the Mediterraneus Protocol.
 
 ## Initialization
-Launch the `docker-compose.yml` 
+Launch the `docker-compose.yml` and [IPFS desktop](https://docs.ipfs.tech/install/ipfs-desktop/)
 
 ## Running the Application
 ```sh
