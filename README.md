@@ -12,19 +12,15 @@ Connector repository. It enable users to interacts with the tangle, with IPFS an
 cd abigen
 cargo run -- --contract ERC721Base --abi-source "../../mediterraneus-smart-contracts/artifacts/contracts/ERC721Base.sol/ERC721Base.json"
 ```
-
 1. In `connector-rs/env` folder, create a `.env` file starting from `.env.example` and update the values accordingly to your development enviroment. 
 
 ## Running the Application
 
-0. Launch [IPFS desktop](https://docs.ipfs.tech/install/ipfs-desktop/)
-
-1. Start up the database by running:
+1. Launch [IPFS desktop](https://docs.ipfs.tech/install/ipfs-desktop/) and start up the database by running:
 ```sh
 cd connector-rs
 docker compose up -d
 ```
-
 2. Run the connector service:
 ```sh
 cd connector-rs
