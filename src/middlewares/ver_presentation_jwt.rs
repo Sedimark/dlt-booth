@@ -104,7 +104,7 @@ pub async fn verify_presentation_jwt(
         .get("blockchainAccountId")
         .ok_or(ConnectorError::InvalidVerificationMethodType)?
         .as_str().ok_or(ConnectorError::InvalidVerificationMethodType)?
-        .strip_prefix("eip:1:")
+        .strip_prefix("eip155:1:")
         .ok_or(ConnectorError::InvalidVerificationMethodType)?;
 
         // Extract wallet signature from presentation custom claims
