@@ -54,11 +54,3 @@ eyre = "0.6.11"
 [lib]
 name = "connector"
 path = "src/lib.rs"
-
-[[bin]]
-name = "connector-rs"
-path = "src/main.rs"
-
-[[bin]]
-name = "abigen"
-path = "src/bin/contract_init.rs"

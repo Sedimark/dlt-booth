@@ -28,7 +28,7 @@ fn main() -> Result<()> {
     let abi_source = args.abi_source.as_str();
     let contract = args.contract.as_str();
     println!("{}",contract.to_lowercase());
-    let out_file = Path::new("./src/contracts/").join(format!("{}.rs", contract.to_lowercase()));
+    let out_file = Path::new("../connector-rs/src/contracts/").join(format!("{}.rs", contract.to_lowercase()));
     println!("Generating bindings for contract {} from ABI file {} to {}", contract, abi_source, out_file.display());
     if out_file.exists() {
         std::fs::remove_file(&out_file)?;
