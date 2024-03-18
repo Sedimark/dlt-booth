@@ -36,7 +36,7 @@ use actix_web::{
     dev::{ServiceRequest, ServiceResponse, Service as _},
 };
 use actix_web_lab::middleware::from_fn;
-use crate::contracts::erc721base::ERC721Base;
+use crate::contracts::servicebase::ServiceBase;
 
 #[post("/assets")] // TODO: improve request size 
 async fn upload_asset(
@@ -201,7 +201,7 @@ async fn download_asset(
     // Verify proof of purchase
     let address: Address = asset_info.nft_address.ok_or(ConnectorError::NftAddressMissing)?.parse().map_err(|_| ConnectorError::AddressRecoveryError)?;
     let client = eth_provider.get_ref().clone();
-    let contract = ERC721Base::new(address, client);
+    let contract = ServiceBase::new(address, client);
 
     // Convert the signature and nonce to bytes
     let eth_sig_bytes = Bytes::from(Vec::from_hex(pop_req.eth_signature.strip_prefix("0x").ok_or(ConnectorError::StringToBytesError)?).map_err(|_| ConnectorError::StringToBytesError)?);
