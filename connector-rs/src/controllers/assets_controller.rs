@@ -208,7 +208,7 @@ async fn download_asset(
     let nonce_bytes = Bytes::from(pop_req.nonce.into_bytes());
 
     // Call verifyPoP on the contract
-    let pop = contract.verify_po_p(eth_sig_bytes, nonce_bytes).await.map_err(|_| ConnectorError::ContractError)?;
+    let pop = contract.verify_proof_of_purchase(eth_sig_bytes, nonce_bytes).await.map_err(|_| ConnectorError::ContractError)?;
 
     if pop == false {
         log::info!("Proof of purchase failed, user not allower to download asset");

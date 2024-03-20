@@ -56,6 +56,7 @@ async fn patch_identity(
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, ConnectorError> {
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    // TODO: add credential verification
     let identity = pg_client.set_credential(&query_params.eth_address, &req_body.credential_jwt).await?;
 
     Ok(HttpResponse::Ok().json(identity))
