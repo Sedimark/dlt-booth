@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fs::File;
+use std::io::Seek;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -13,7 +14,9 @@ use deadpool_postgres::Pool;
 use ethers::abi::Address;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, Signature};
+use futures_util::TryStreamExt;
 use hex::FromHex;
+use identity_iota::core::ToJson;
 use identity_iota::storage::{JwkDocumentExt, JwsSignatureOptions};
 use ipfs_api_backend_actix::{IpfsClient, IpfsApi};
 use serde_json::json;
@@ -37,6 +40,23 @@ use actix_web::{
 };
 use actix_web_lab::middleware::from_fn;
 use crate::contracts::servicebase::ServiceBase;
+
+#[get("/cids/{cid}")] // TODO: improve request size 
+async fn get_description_from_ipfs(
+    path: web::Path<String>,
+    ipfs_client: web::Data<IpfsClient>,
+) -> Result<impl Responder, ConnectorError> {
+    
+    let cid = path.into_inner();    
+    // get offering file's content from IPFS
+    let res = ipfs_client
+    .cat(cid.as_ref())
+    .map_ok(|chunk| chunk.to_vec())
+    .try_concat()
+    .await?;
+
+    Ok(HttpResponse::Ok().body(res))
+}
 
 #[post("/assets")] // TODO: improve request size 
 async fn upload_asset(
@@ -100,6 +120,7 @@ async fn upload_asset(
     log::info!("jws: {:#?}", jws);
 
     // load offering file's content of IPFS and get CID back
+    offering_file.rewind()?;
     let ipfs_response =  ipfs_client.add(offering_file).await?;
     log::info!("cid: {}", ipfs_response.hash);
     
@@ -232,7 +253,8 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     .service(get_asset_info_from_alias)   
     .service(download_asset)       
     .service(patch_asset)
-    .service(get_asset_info);
+    .service(get_asset_info)
+    .service(get_description_from_ipfs);
     // .service(get_asset_challenge)
     // .service(encrypt_asset_cid)
 }
