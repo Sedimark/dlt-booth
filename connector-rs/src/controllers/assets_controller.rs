@@ -98,6 +98,7 @@ async fn upload_asset(
     let mut offering_file = File::open(&offering_path)?;
     let mut asset_file = File::open(&asset_path)?;
 
+    // TODO: remove this 
     let mut hasher = Blake2b512::new();
     let _ = std::io::copy(&mut asset_file, &mut hasher)?;
     let asset_file_hash = hasher.finalize_reset();
@@ -131,8 +132,8 @@ async fn upload_asset(
         alias: form.alias.clone(), 
         asset_path: asset_path, 
         offering_path: offering_path, 
-        asset_hash: base64_asset_hash, 
-        offering_hash: base64_offering_hash, 
+        asset_hash: base64_asset_hash,  // TODO: remove this, also on the front-end
+        offering_hash: base64_offering_hash,  // TODO: remove this, also on the front-end
         sign: jws.into(), 
         publisher: identity.id.ok_or(ConnectorError::IdMissing)?
     };
@@ -193,15 +194,6 @@ async fn patch_asset(
     Ok(HttpResponse::Ok().json(asset))
 }
 
-// TODO: remove this 
-#[post("/assets/{asset_id}/challenge")]
-async fn get_asset_challenge(
-    path: web::Path<i64>,
-    db_pool: web::Data<Pool>,
-) -> Result<HttpResponse, ConnectorError> {
-    log::info!("controller get_asset_challenge");
-    todo!()
-}
 
 #[get("/assets/download", wrap = "from_fn(verify_presentation_jwt)")]
 async fn download_asset(
@@ -255,6 +247,4 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     .service(patch_asset)
     .service(get_asset_info)
     .service(get_description_from_ipfs);
-    // .service(get_asset_challenge)
-    // .service(encrypt_asset_cid)
 }

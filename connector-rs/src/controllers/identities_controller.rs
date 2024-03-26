@@ -15,7 +15,7 @@ use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
 use crate::utils::iota::IotaState;
 
-#[post("")] 
+#[post("/identities")] 
 async fn create_identity(
     req_body: web::Json<IdentityRequest>, 
     db_pool: web::Data<Pool>,
@@ -37,7 +37,7 @@ async fn create_identity(
     Ok(HttpResponse::Ok().json(created_identity))
 }
 
-#[get("")]
+#[get("/identities")]
 async fn get_identity(
     query_params: web::Query<QueryEthAddress>, 
     db_pool: web::Data<Pool>,
@@ -49,7 +49,7 @@ async fn get_identity(
     Ok(HttpResponse::Ok().json(identity))
 }
 
-#[patch("")] // TODO: since we modify just the credential, is the patch correct? 
+#[patch("/identities")] // TODO: since we modify just the credential, is the patch correct? 
 async fn patch_identity(
     query_params: web::Query<QueryEthAddress>, 
     req_body: web::Json<CredentialRequest>,
@@ -62,7 +62,7 @@ async fn patch_identity(
     Ok(HttpResponse::Ok().json(identity))
 }
 
-#[post("/{identity_id}/sign-data")] 
+#[post("/identities/{identity_id}/sign-data")] 
 async fn sign_data(
     path: web::Path<i64>,
     req_body: web::Json<SignDataRequest>, 
@@ -79,7 +79,7 @@ async fn sign_data(
 }
 
 //TODO: pass also expiration time
-#[post("/{identity_id}/gen-presentation")] 
+#[post("/identities/{identity_id}/gen-presentation")] 
 async fn gen_presentation(
     path: web::Path<i64>,
     req_body: web::Json<PresentationRequest>, 
@@ -106,13 +106,10 @@ async fn gen_presentation(
 
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        // prefixes all resources and routes attached to it...
-        web::scope("/identities")
-        .service(create_identity)
-        .service(get_identity)     
-        .service(patch_identity)       
-        .service(sign_data)
-        .service(gen_presentation)
-    );
+    cfg
+    .service(create_identity)
+    .service(get_identity)     
+    .service(patch_identity)       
+    .service(sign_data)
+    .service(gen_presentation);
 }
