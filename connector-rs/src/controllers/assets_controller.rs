@@ -21,6 +21,7 @@ use identity_iota::storage::{JwkDocumentExt, JwsSignatureOptions};
 use ipfs_api_backend_actix::{IpfsClient, IpfsApi};
 use serde_json::json;
 
+use actix_web_lab::middleware::from_fn;
 use crate::middlewares::ver_presentation_jwt::verify_presentation_jwt;
 
 use crate::BASE_UPLOADS_DIR;
@@ -38,7 +39,6 @@ use actix_web::{
     App, Error,
     dev::{ServiceRequest, ServiceResponse, Service as _},
 };
-use actix_web_lab::middleware::from_fn;
 use crate::contracts::servicebase::ServiceBase;
 
 #[get("/cids/{cid}")] // TODO: improve request size 
@@ -113,7 +113,7 @@ async fn upload_asset(
     let payload = json!({"assetHash": base64_asset_hash, "offeringHash": base64_offering_hash});
     log::info!("payload: {:#?}", payload);
     let jws = document.create_jws(
-        &iota_state.storage,
+        &iota_state.key_storage,
         &identity.fragment, 
         serde_json::to_string(&payload)?.as_bytes(),
         &JwsSignatureOptions::default()

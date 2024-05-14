@@ -59,7 +59,7 @@ pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
 pub struct IotaState {
   pub client: Client,
   pub stronghold_storage: StrongholdStorage,
-  pub storage: MemStorage,
+  pub key_storage: MemStorage,
   pub address: Bech32Address,
   pub faucet_url: String
 }
@@ -127,7 +127,7 @@ impl IotaState {
     )
     .await?[0];
 
-    let iota_state = IotaState{ client, stronghold_storage, storage, address, faucet_url };
+    let iota_state = IotaState{ client, stronghold_storage, key_storage: storage, address, faucet_url };
 
     iota_state.ensure_address_has_funds().await?;
 
@@ -168,7 +168,7 @@ impl IotaState {
 
     let fragment: String = document
     .generate_method(
-      &self.storage,
+      &self.key_storage,
       JwkMemStore::ED25519_KEY_TYPE,
       JwsAlgorithm::EdDSA,
       None,
@@ -291,7 +291,7 @@ impl IotaState {
     };
 
     // Compute signature
-    let jws = document.create_jws(&self.storage, &identity.fragment, &payload, &jws_signature_options).await?;
+    let jws = document.create_jws(&self.key_storage, &identity.fragment, &payload, &jws_signature_options).await?;
     // Verify signature
     let _decoded_jws = document.verify_jws(
         &jws,
@@ -336,7 +336,7 @@ impl IotaState {
     let presentation_jwt: Jwt = document
       .create_presentation_jwt(
         &presentation,
-        &self.storage,
+        &self.key_storage,
         &identity.fragment,
         &JwsSignatureOptions::default().nonce(challenge.to_owned()),
         &jwt_presentation_options // .expiration_date(expires), // TODO: add expiration handling
