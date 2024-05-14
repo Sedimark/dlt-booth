@@ -6,7 +6,7 @@ Connector repository. It enable users to interacts with the tangle, with IPFS an
 
 ## Demo 
 
-Refer to the [documentation]()
+Refer to the [documentation](https://cybersecurity-links.github.io/mediterraneus/running-the-protocol/connector-rs)
 
 ## License
 
