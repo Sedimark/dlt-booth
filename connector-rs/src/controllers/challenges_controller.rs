@@ -7,9 +7,8 @@ use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::Pool;
 use identity_iota::core::{Timestamp, Duration};
 use serde::Deserialize;
-use serde_json::json;
 use uuid::Uuid;
-use crate::models::download_request::{self, DownloadRequest};
+use crate::models::download_request::DownloadRequest;
 use crate::repository::download_request_operations::ChallengesExt;
 
 use crate::errors::ConnectorError;

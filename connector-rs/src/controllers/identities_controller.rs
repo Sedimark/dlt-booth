@@ -7,9 +7,13 @@ use std::collections::BTreeMap;
 use actix_web::{get, patch, post};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
+use identity_eddsa_verifier::EdDSAJwsVerifier;
+use identity_iota::core::Object;
+use identity_iota::credential::{self, FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils};
+use identity_iota::iota::{IotaDID, IotaIdentityClientExt};
 use serde_json::json;
 
-use crate::dtos::{IdentityRequest, CredentialRequest, SignDataRequest, PresentationRequest, QueryEthAddress};
+use crate::dtos::{CredentialRequest, IdentityRequest, IdentityResponse, PresentationRequest, QueryEthAddress, SignDataRequest};
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
@@ -41,12 +45,47 @@ async fn create_identity(
 async fn get_identity(
     query_params: web::Query<QueryEthAddress>, 
     db_pool: web::Data<Pool>,
+    iota_state: web::Data<IotaState>
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller get_identity");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let identity = pg_client.get_identity_with_eth_addr(&query_params.eth_address).await?;
 
-    Ok(HttpResponse::Ok().json(identity))
+    let credential = identity.vcredential.clone();
+    // TODO: move in utils::iota::IotaState;
+    let credential_id = if let Some(cred) = credential {
+        let jwt_vc = Jwt::from(cred);
+        let issuer_did = JwtCredentialValidatorUtils::extract_issuer_from_jwt::<IotaDID>(&jwt_vc)?;
+        let issuer_document = iota_state.client.resolve_did(&issuer_did).await?;
+
+        let credential_validator = JwtCredentialValidator::with_signature_verifier(EdDSAJwsVerifier::default());
+
+        let decoded_credential = credential_validator
+        .validate::<_, Object>(&jwt_vc, &issuer_document, &JwtCredentialValidationOptions::default(), FailFast::FirstError)
+        .map_err(|err| ConnectorError::OtherError(format!("Error: {}", err.to_string())))?;
+
+        
+        let id = decoded_credential.credential.id
+        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?
+        .into_string().strip_prefix("https://example.market/credentials/")
+        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?
+        .to_string();
+
+        Some(id)
+    } else {
+        None
+    };
+
+    let credential_response = IdentityResponse { 
+        id: identity.id, 
+        eth_address: identity.eth_address, 
+        did: identity.did, 
+        fragment: identity.fragment, 
+        vcredential: identity.vcredential, 
+        credential_id: credential_id,
+    };
+
+    Ok(HttpResponse::Ok().json(credential_response))
 }
 
 #[patch("/identities")] // TODO: since we modify just the credential, is the patch correct? 

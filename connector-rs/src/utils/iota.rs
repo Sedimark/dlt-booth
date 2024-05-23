@@ -13,9 +13,6 @@ use anyhow::Result;
 
 use crypto::keys::bip39::Mnemonic;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
-use identity_iota::core::FromJson;
-use identity_iota::core::Object;
-use identity_iota::core::ToJson;
 use identity_iota::credential::Jws;
 use identity_iota::credential::Jwt;
 use identity_iota::credential::JwtPresentationOptions;
@@ -38,7 +35,6 @@ use identity_iota::verification::MethodData;
 use identity_iota::verification::MethodScope;
 
 use identity_iota::verification::MethodType;
-use identity_iota::verification::VerificationMethod;
 use identity_iota::verification::jws::JwsAlgorithm;
 use identity_stronghold::StrongholdStorage;
 use iota_sdk::client::Password;

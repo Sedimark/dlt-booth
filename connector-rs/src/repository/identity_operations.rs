@@ -13,7 +13,7 @@ pub trait IdentityExt {
     async fn insert_identity(&self, identity: &Identity) -> Result<Identity, ConnectorError>;
     async fn get_identity_with_eth_addr(&self, eth_address: &String) -> Result<Identity, ConnectorError>;
     async fn get_identity(&self, id: i64) -> Result<Identity, ConnectorError>;
-    async fn set_credential(&self, eth_address: &String, credential: &String) -> Result<Identity, ConnectorError>;
+    async fn set_credential(&self, eth_address: &String, credential: &Option<String>) -> Result<Identity, ConnectorError>;
 }
 
 #[async_trait]
@@ -72,7 +72,7 @@ impl IdentityExt for PostgresClient {
     async fn set_credential(
         &self, 
         eth_address: &String,
-        credential: &String
+        credential: &Option<String>,
     ) -> Result<Identity, ConnectorError> {
         log::info!("set credential");
         let _stmt = include_str!("../../sql/identity_update_vc.sql");

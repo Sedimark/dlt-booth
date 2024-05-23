@@ -10,6 +10,17 @@ use actix_multipart::form::{
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct IdentityResponse {
+    pub id: Option<i64>,
+    pub eth_address: String,
+    pub did: String,
+    pub fragment: String,
+    pub vcredential: Option<String>,
+    pub credential_id: Option<String>
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IdentityRequest {
     pub eth_address: String,
 }
@@ -17,7 +28,7 @@ pub struct IdentityRequest {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialRequest {
-    pub credential_jwt: String,
+    pub credential_jwt: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

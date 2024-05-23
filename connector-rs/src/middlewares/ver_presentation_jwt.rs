@@ -53,7 +53,7 @@ pub async fn verify_presentation_jwt(
         // Recover the expected challenge from the database
         let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
         log::info!("Holder did: {}", holder.id());
-        // check and clean holder requests
+        // check and clean holder requests // TODO: clean? the clean currently is done each time the GET api is called
         let download_request = pg_client.get_challenge(&holder.id().to_string()).await?;
 
         let presentation_verifier_options = JwsVerificationOptions::default().nonce(download_request.nonce.clone());
@@ -78,6 +78,8 @@ pub async fn verify_presentation_jwt(
             JwtCredentialValidator::with_signature_verifier(EdDSAJwsVerifier::default());
         let validation_options: JwtCredentialValidationOptions = JwtCredentialValidationOptions::default()
             .subject_holder_relationship(holder_did.to_url().into(), SubjectHolderRelationship::AlwaysSubject);
+
+        // TODO: verify that the credential is not revoked by iteracting with the Identity SC
 
         for (index, jwt_vc) in jwt_credentials.iter().enumerate() {
             // SAFETY: Indexing should be fine since we extracted the DID from each credential and resolved it.

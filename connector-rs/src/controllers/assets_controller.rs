@@ -35,10 +35,6 @@ use actix_multipart::form::MultipartForm;
 use uuid::Uuid;
 use blake2::{Blake2b512, Digest};
 use base64::{Engine as _, engine::general_purpose};
-use actix_web::{
-    App, Error,
-    dev::{ServiceRequest, ServiceResponse, Service as _},
-};
 use crate::contracts::servicebase::ServiceBase;
 
 #[get("/cids/{cid}")] // TODO: improve request size 

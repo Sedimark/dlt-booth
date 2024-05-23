@@ -68,6 +68,9 @@ pub enum ConnectorError {
     PoolError(#[from] PoolError),
     #[error("Middleware error: {0}")]
     MiddlewareError(String),
+
+    #[error("Other error: {0}")]
+    OtherError(String),
 }   
 
 impl ResponseError for ConnectorError {
@@ -109,6 +112,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::AddressRecoveryError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::StringToBytesError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ContractError => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::OtherError(_) => StatusCode::INTERNAL_SERVER_ERROR,
 
         }
     }
