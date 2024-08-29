@@ -1,0 +1,6 @@
+connector-rs/postgresdata
+connector-rs/key_storage.stronghold
+
+connector-rs/src/contracts/servicebase.rs
+
+connector-rs/target

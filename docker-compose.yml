@@ -1,0 +1,50 @@
+version: '3.9'
+services:
+  connector-rs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: connector-rs
+    hostname: connector-rs
+    container_name: connector-rs
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    # secrets:
+    #   - 
+    depends_on:
+      postgres:
+       condition: service_healthy 
+    profiles:
+      - deploy
+    networks:
+      - connector-net
+      
+  postgres:
+    container_name: postgres
+    hostname: postgres
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    env_file: 
+      - ./connector-rs/env/postgres.env
+    volumes: 
+      - ./connector-rs/postgresdata:/var/lib/postgresql/data
+      - ./connector-rs/sql/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql 
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: connector
+      POSTGRES_DB: identity
+    profiles:
+      - dev
+      - deploy
+    networks:
+      - connector-net
+networks:
+  connector-net:
