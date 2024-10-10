@@ -35,7 +35,7 @@ use actix_multipart::form::MultipartForm;
 use uuid::Uuid;
 use blake2::{Blake2b512, Digest};
 use base64::{Engine as _, engine::general_purpose};
-use crate::contracts::servicebase::ServiceBase;
+use crate::contracts::ServiceBase;
 
 #[get("/cids/{cid}")] // TODO: improve request size 
 async fn get_description_from_ipfs(
