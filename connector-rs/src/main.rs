@@ -4,11 +4,11 @@
 
 use std::sync::Arc;
 
-use actix_web::{web, App, HttpServer, middleware::Logger, http};
+use actix_web::{http::{self, uri::Scheme}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use connector::{controllers, utils::iota::IotaState, repository::postgres_repo::init, BASE_UPLOADS_DIR};
 use ethers::providers::{Http, Provider};
-use ipfs_api_backend_actix::IpfsClient;
+use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
 
 /// Connector command line arguments
@@ -26,7 +26,9 @@ struct Args {
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
+    #[cfg(debug_assertions)]
     dotenv::from_path("./env/.env").expect(".env file not found");
+    #[cfg(debug_assertions)]
     dotenv::from_path("./env/postgres.env").expect("postgres.env file not found");
 
     env_logger::init();

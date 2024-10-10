@@ -2,24 +2,23 @@
 # 1 - Build Stage
 # ---------------------------------------------------
 
-FROM rust:1.81.0-alpine AS build
+FROM rust:1.81.0-alpine AS connector-build
 WORKDIR /app
-COPY . .
+COPY ./connector-rs .
+COPY ./smart-contracts /smart-contracts
 RUN  apk add --no-cache make musl-dev clang llvm gcc libc-dev clang-dev binutils g++ linux-headers libstdc++ libgcc libressl-dev
-ENV RUSTFLAGS="-C target-feature=-crt-static"
-RUN --mount=type=cache,target=/app/connector-rs/target/ \
+# Since the cache is unmounted, I need to move the generated executable in another place
+RUN --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cd connector-rs && cargo build --release && cp target/release/connector /app/connector
+    cargo build --release && \
+    cp target/release/connector /app/connector
 
 # ---------------------------------------------------
 # 2 - Deploy Stage
 # ---------------------------------------------------
-
+    
  FROM alpine:latest
-RUN  apk add --no-cache gcc libressl-dev
-COPY --from=build /app/connector /usr/local/bin/connector
-COPY --from=build /app/connector-rs/env/.env ./env/.env
-COPY --from=build /app/connector-rs/env/postgres.env ./env/postgres.env
+ COPY --from=connector-build /app/connector /usr/local/bin/connector
  EXPOSE 8085
- CMD [ "connector" , "--rpc-provider", "https://json-rpc.evm.stardust.linksfoundation.com/", "--chain-id" , "1074" ] 
+ CMD connector 
