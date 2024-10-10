@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   connector-rs:
     build:
@@ -19,6 +18,8 @@ services:
       - deploy
     networks:
       - connector-net
+    env_file:
+      - ./connector-rs/env/.env
       
   postgres:
     container_name: postgres
