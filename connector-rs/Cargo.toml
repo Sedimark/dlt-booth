@@ -53,6 +53,7 @@ ethers = { version = "2.0.8", features = ["legacy"] }
 actix-web-lab = "0.20.1"
 clap = { version = "4.4.2", features = ["derive", "env"] }
 url = "2.5.2"
+zeroize = "1.8.1"
 
 [lib]
 name = "connector"

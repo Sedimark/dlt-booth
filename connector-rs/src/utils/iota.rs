@@ -50,6 +50,9 @@ use serde_json::json;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 
+use super::configs::DLTConfig;
+use super::configs::KeyStorageConfig;
+
 pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
 
 pub struct IotaState {
@@ -57,34 +60,27 @@ pub struct IotaState {
   pub stronghold_storage: StrongholdStorage,
   pub key_storage: MemStorage,
   pub address: Bech32Address,
-  pub faucet_url: String
+  pub faucet_url: String,
+  pub explorer_url: String
 }
 
 impl IotaState {
   // create_or_recover_key_storage
-  pub async fn init() -> Result<Self> {
+  pub async fn init(key_storage_config: KeyStorageConfig, dlt_config: DLTConfig) -> Result<Self> {
     log::info!("Creating or recovering storage...");
 
-    let stronghold_pass = std::env::var("KEY_STORAGE_STRONGHOLD_PASSWORD")
-    .expect("$KEY_STORAGE_STRONGHOLD_PASSWORD must be set.");
-
-    let stronghold_path = std::env::var("KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH")
-    .expect("$KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH must be set.");
-
-    let mnemonic_string = std::env::var("KEY_STORAGE_MNEMONIC")
-    .expect("$KEY_STORAGE_MNEMONIC must be set.");
-
-    let node_url = std::env::var("NODE_URL").expect("$NODE_URL must be set.");
-    let faucet_url = std::env::var("FAUCET_URL").expect("$FAUCET_URL must be set.");
+    let node_url = dlt_config.node_url;
+    let faucet_url = dlt_config.faucet_api_endpoint;
+    let explorer_url = dlt_config.explorer_url;
     
     
     // Setup Stronghold secret_manager
     let stronghold = StrongholdSecretManager::builder()
-    .password(Password::from(stronghold_pass))
-    .build(stronghold_path)?;
+    .password(Password::from(key_storage_config.password.value()))
+    .build(key_storage_config.file_path)?;
 
     // Only required the first time, can also be generated with `manager.generate_mnemonic()?`
-    let mnemonic = Mnemonic::from(mnemonic_string);
+    let mnemonic = Mnemonic::from(key_storage_config.mnemonic.value());
 
     match stronghold.store_mnemonic(mnemonic).await {
       Ok(()) => log::info!("Stronghold mnemonic stored"),
@@ -123,7 +119,7 @@ impl IotaState {
     )
     .await?[0];
 
-    let iota_state = IotaState{ client, stronghold_storage, key_storage: storage, address, faucet_url };
+    let iota_state = IotaState{ client, stronghold_storage, key_storage: storage, address, faucet_url, explorer_url };
 
     iota_state.ensure_address_has_funds().await?;
 
@@ -198,7 +194,7 @@ impl IotaState {
     did: &str
   ) -> Result<IotaDocument, ConnectorError> {
     log::info!("Resolving did...");
-    log::info!("{}/identity-resolver/{}", std::env::var("EXPLORER_URL").unwrap(), did);
+    log::info!("{}/identity-resolver/{}", self.explorer_url, did);
     match self.client.resolve_did(&IotaDID::try_from(did)?).await {
         Ok(iota_document) => Ok(iota_document),
         Err(err) => {
