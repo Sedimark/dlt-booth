@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::{body::MessageBody, dev::{ServiceRequest, ServiceResponse}, Error, HttpMessage, HttpResponse};
+use actix_web::{body::MessageBody, dev::{ServiceRequest, ServiceResponse}, Error, HttpMessage};
 use actix_web_lab::middleware::Next;
-use std::{collections::HashMap, future::{ready, Ready}};
+use std::collections::HashMap;
 
 use actix_web::web;
 use deadpool_postgres::Pool;
-use futures_util::{future::LocalBoxFuture, FutureExt};
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::{core::Object, credential::{DecodedJwtCredential, DecodedJwtPresentation, FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils, JwtPresentationValidationOptions, JwtPresentationValidator, JwtPresentationValidatorUtils, SubjectHolderRelationship}, did::{CoreDID, DID}, document::verifiable::JwsVerificationOptions, iota::IotaDocument, resolver::Resolver};
 use crate::{dtos::ProofOfPurchaseRequest, errors::ConnectorError, repository::download_request_operations::ChallengesExt, utils::iota::IotaState};

@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use actix_web::{http::{self, uri::Scheme}, middleware::Logger, web, App, HttpServer};
+use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use connector::{controllers, utils::iota::IotaState, repository::postgres_repo::init, BASE_UPLOADS_DIR};
 use ethers::providers::{Http, Provider};
@@ -22,6 +22,10 @@ struct Args {
     /// chain id
     #[arg(short, long, required=true)]
     chain_id: u64,
+
+    /// Ipfs client api url
+    #[arg(long, env, required=true)]
+    ipfs_url: url::Url
 }
 
 #[actix_web::main]
@@ -54,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
     let provider = Arc::new(Provider::<Http>::try_from(rpc_provider)?);
     let provider_data = web::Data::new(provider);
 
+
     // Create uploads directory if it doesn't exist
     std::fs::create_dir_all(BASE_UPLOADS_DIR)?;
 
@@ -65,9 +70,12 @@ async fn main() -> anyhow::Result<()> {
         .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
         .allowed_header(http::header::CONTENT_TYPE)
         .max_age(3600);
-    
+        
+        let ipfs_client = IpfsClient::from_str("http://127.0.0.1:5001")
+            .unwrap(); // This may let crash the app. TODO: there must be a better solution.
+
         App::new()
-        .app_data(web::Data::new(IpfsClient::default())) // connect to the default IPFS API address http://localhost:5001
+        .app_data(web::Data::new(ipfs_client)) // connect to the default IPFS API address http://localhost:5001
         .app_data(web::Data::new(db_pool.clone()))
         .app_data(iota_state_data.clone())
         .app_data(provider_data.clone())
