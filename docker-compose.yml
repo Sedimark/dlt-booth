@@ -48,5 +48,20 @@ services:
       - deploy
     networks:
       - connector-net
+  ipfs:
+    container_name: ipfs
+    hostname: ipfs
+    image: ipfs/kubo:latest
+    profiles:
+      - dev
+      - deploy
+    restart: unless-stopped
+    volumes:
+      - ./ipfs/export:/export
+      - ./ipfs/data:/data
+    ports:
+      - 127.0.0.1:5001:5001
+    networks:
+      - connector-net 
 networks:
   connector-net:

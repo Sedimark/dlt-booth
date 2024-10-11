@@ -16,11 +16,11 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// JSON RPC provider url
-    #[arg(short, long, required=true)]
+    #[arg(long, env, required=true)]
     rpc_provider: String,
 
     /// chain id
-    #[arg(short, long, required=true)]
+    #[arg(long, env, required=true)]
     chain_id: u64,
 
     /// Ipfs client api url
