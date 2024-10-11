@@ -70,7 +70,7 @@ pub struct HttpServerConfig {
     pub host_address: String,
 
     /// Listening port for the http server
-    #[arg(long, env, default_value_t = 3213)]
+    #[arg(long, env, default_value_t = 8085)]
     pub host_port: u16,
 }
 
