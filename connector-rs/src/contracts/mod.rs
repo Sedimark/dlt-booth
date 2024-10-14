@@ -2,4 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-pub mod servicebase; // servicebase.rs is a auto-generated file
+use ethers::contract::abigen;
+
+abigen!(ServiceBase, "../smart-contracts/ServiceBase.json");

@@ -4,19 +4,17 @@
 
 use std::fs::File;
 use std::io::Seek;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use actix_web::web::ReqData;
-use actix_web::{get, patch, post, HttpMessage, HttpRequest, Responder};
+use actix_web::{get, patch, post, HttpRequest, Responder};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
 use ethers::abi::Address;
 use ethers::providers::{Http, Provider};
-use ethers::types::{Bytes, Signature};
+use ethers::types::Bytes;
 use futures_util::TryStreamExt;
 use hex::FromHex;
-use identity_iota::core::ToJson;
 use identity_iota::storage::{JwkDocumentExt, JwsSignatureOptions};
 use ipfs_api_backend_actix::{IpfsClient, IpfsApi};
 use serde_json::json;
@@ -35,7 +33,7 @@ use actix_multipart::form::MultipartForm;
 use uuid::Uuid;
 use blake2::{Blake2b512, Digest};
 use base64::{Engine as _, engine::general_purpose};
-use crate::contracts::servicebase::ServiceBase;
+use crate::contracts::ServiceBase;
 
 #[get("/cids/{cid}")] // TODO: improve request size 
 async fn get_description_from_ipfs(

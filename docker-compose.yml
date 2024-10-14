@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   connector-rs:
     build:
@@ -10,8 +9,6 @@ services:
     restart: unless-stopped
     ports:
       - "8085:8085"
-    # secrets:
-    #   - 
     depends_on:
       postgres:
        condition: service_healthy 
@@ -19,6 +16,8 @@ services:
       - deploy
     networks:
       - connector-net
+    env_file:
+      - ./connector-rs/env/.env
       
   postgres:
     container_name: postgres
@@ -46,5 +45,20 @@ services:
       - deploy
     networks:
       - connector-net
+  ipfs:
+    container_name: ipfs
+    hostname: ipfs
+    image: ipfs/kubo:latest
+    profiles:
+      - dev
+      - deploy
+    restart: unless-stopped
+    volumes:
+      - ./ipfs/export:/export
+      - ./ipfs/data:/data
+    ports:
+      - 127.0.0.1:5001:5001
+    networks:
+      - connector-net 
 networks:
   connector-net:

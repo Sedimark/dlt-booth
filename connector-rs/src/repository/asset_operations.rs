@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 use tokio_pg_mapper::FromTokioPostgresRow;
-use crate::{models::{identity::Identity, asset::Asset}, errors::ConnectorError};
+use crate::{models::asset::Asset, errors::ConnectorError};
 use deadpool_postgres::Client as PostgresClient;
 
 

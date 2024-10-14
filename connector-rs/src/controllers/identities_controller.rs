@@ -9,7 +9,7 @@ use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::core::Object;
-use identity_iota::credential::{self, FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils};
+use identity_iota::credential::{FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils};
 use identity_iota::iota::{IotaDID, IotaIdentityClientExt};
 use serde_json::json;
 
