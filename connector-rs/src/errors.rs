@@ -11,6 +11,8 @@ pub enum ConnectorError {
 
     #[error("Credential Missing")]
     CredentialMissing,
+    #[error("Challenge missing")]
+    ChallengeMissing,
 
     // IOTA Errors
     #[error("Iota Client Error")]
@@ -113,7 +115,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::StringToBytesError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ContractError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::OtherError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-
+            ConnectorError::ChallengeMissing => StatusCode::BAD_REQUEST,
         }
     }
 }

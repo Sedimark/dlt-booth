@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use async_trait::async_trait;
+use identity_iota::core::Timestamp;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use crate::{models::download_request::DownloadRequest, errors::ConnectorError};
 use deadpool_postgres::Client as PostgresClient;
@@ -11,7 +12,7 @@ use deadpool_postgres::Client as PostgresClient;
 #[async_trait]
 pub trait ChallengesExt {
     async fn insert_challenge(&self, download_request: &DownloadRequest) -> Result<DownloadRequest, ConnectorError>;
-    async fn get_challenge(&self, did: &String) -> Result<DownloadRequest, ConnectorError>;
+    async fn get_challenge(&self, did: &String, nonce: &String, timestamp: Timestamp) -> Result<DownloadRequest, ConnectorError>;
     async fn remove_challenge(&self, nonce: &String) ->  Result<(), ConnectorError>;
 }
 
@@ -20,7 +21,9 @@ impl ChallengesExt for PostgresClient {
 
     async fn get_challenge (
         &self, 
-        did: &String
+        did: &String,
+        nonce: &String,
+        timestamp: Timestamp
     ) -> Result<DownloadRequest, ConnectorError> {
 
         let _stmt = include_str!("../../sql/download_request_get.sql");
@@ -28,7 +31,7 @@ impl ChallengesExt for PostgresClient {
         let stmt = self.prepare(&_stmt).await?;
 
         match self
-        .query_one(&stmt, &[did])
+        .query_one(&stmt, &[did, nonce, &timestamp.to_rfc3339()])
         .await{
             Ok(row) => DownloadRequest::from_row_ref(&row).map_err(|e| ConnectorError::from(e)),
             Err(_) =>  Err(ConnectorError::RowNotFound),

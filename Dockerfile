@@ -21,4 +21,4 @@ RUN --mount=type=cache,target=/app/target/ \
  FROM alpine:latest
  COPY --from=connector-build /app/connector /usr/local/bin/connector
  EXPOSE 8085
- CMD connector 
+ CMD ["connector"] 

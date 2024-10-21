@@ -28,24 +28,6 @@ async fn get_challenge(
 ) -> Result<impl Responder, ConnectorError> {
     log::info!("get_challenge");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
-    log::info!("{}", params.did);
-    // check and clean holder requests
-    match pg_client.get_challenge(&params.did).await {
-        Ok(challenge) => {
-            // request already exists
-            // check that it is not expired, if expired remove from db
-            let holder_request_timestamp = Timestamp::parse(&challenge.expiration).unwrap();
-            if holder_request_timestamp < Timestamp::now_utc() {
-               // request expired --> remove it from DB and let handler continue
-               pg_client.remove_challenge(&challenge.nonce).await?;
-            } else {
-               // request still not expired --> stop handler from continuing
-                return Err(ConnectorError::ChallengePendingError)
-            }
-        },
-        Err(ConnectorError::RowNotFound) => {log::info!("No pending challenges");},
-        Err(err) => return Err(err),
-    }
 
     // create nonce and store holder request (did, request expiration, nonce)
     let expiration = Timestamp::now_utc().checked_add(Duration::minutes(1)).unwrap();
