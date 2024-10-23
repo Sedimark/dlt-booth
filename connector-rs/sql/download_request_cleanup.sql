@@ -2,8 +2,6 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-SELECT $table_fields 
+DELETE
 FROM connector.download_requests 
-WHERE requester_did = $1 
-AND nonce = $2
-AND expiration >= $3;
+WHERE expiration < $1;

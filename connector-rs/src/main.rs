@@ -83,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
             .unwrap(); // This may let crash the app. TODO: there must be a better solution.
 
         App::new()
-        .app_data(web::Data::new(ipfs_client)) // connect to the default IPFS API address http://localhost:5001
+        .app_data(web::Data::new(ipfs_client))
         .app_data(web::Data::new(db_pool.clone()))
         .app_data(iota_state_data.clone())
         .app_data(provider_data.clone())

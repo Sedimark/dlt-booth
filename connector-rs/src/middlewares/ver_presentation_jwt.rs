@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use actix_web::web;
 use deadpool_postgres::Pool;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
-use identity_iota::{core::Object, credential::{DecodedJwtCredential, DecodedJwtPresentation, FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils, JwtPresentationValidationOptions, JwtPresentationValidator, JwtPresentationValidatorUtils, SubjectHolderRelationship}, did::{CoreDID, DID}, document::verifiable::JwsVerificationOptions, iota::IotaDocument, resolver::Resolver};
+use identity_iota::{core::{Object, Timestamp}, credential::{DecodedJwtCredential, DecodedJwtPresentation, FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils, JwtPresentationValidationOptions, JwtPresentationValidator, JwtPresentationValidatorUtils, SubjectHolderRelationship}, did::{CoreDID, DID}, document::verifiable::JwsVerificationOptions, iota::IotaDocument, resolver::Resolver, verification::{jws::JwsHeader, jwu::decode_b64_json}};
 use crate::{dtos::ProofOfPurchaseRequest, errors::ConnectorError, repository::download_request_operations::ChallengesExt, utils::iota::IotaState};
 
 // TODO: handle expiration and errors (no unwraps)
@@ -31,7 +31,7 @@ pub async fn verify_presentation_jwt(
         log::info!("Presentation jwt: {}", jwt_str);
 
         let presentation_jwt = Jwt::from(jwt_str.to_string());
-        
+
         // ===========================================================================
         // Verifier receives the Verifiable Presentation and verifies it.
         // ===========================================================================
@@ -41,6 +41,13 @@ pub async fn verify_presentation_jwt(
         // - JWT verification of the credentials.
         // - The presentation holder must always be the subject, regardless of the presence of the nonTransferable property
         // - The issuance date must not be in the future.
+
+        // retrieve the header
+        let header_b64 = presentation_jwt.as_str().split('.').next().unwrap_or("");
+        let header = decode_b64_json::<JwsHeader>(header_b64)
+            .map_err(|e| {ConnectorError::JwtValidationError(identity_iota::credential::JwtValidationError::JwsDecodingError(e))})?;
+        
+        let nonce = header.nonce().ok_or(ConnectorError::ChallengeMissing)?;
 
         let mut resolver: Resolver<IotaDocument> = Resolver::new();
         resolver.attach_iota_handler(iota_state.client.clone());
@@ -53,7 +60,7 @@ pub async fn verify_presentation_jwt(
         let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
         log::info!("Holder did: {}", holder.id());
         // check and clean holder requests // TODO: clean? the clean currently is done each time the GET api is called
-        let download_request = pg_client.get_challenge(&holder.id().to_string()).await?;
+        let download_request = pg_client.get_challenge(&holder.id().to_string(), &nonce.to_string(), Timestamp::now_utc()).await?;
 
         let presentation_verifier_options = JwsVerificationOptions::default().nonce(download_request.nonce.clone());
 
