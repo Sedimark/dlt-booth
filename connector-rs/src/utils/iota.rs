@@ -38,6 +38,7 @@ use identity_iota::verification::MethodScope;
 use identity_iota::verification::MethodType;
 use identity_iota::verification::jws::JwsAlgorithm;
 use identity_stronghold::StrongholdStorage;
+use iota_sdk::client::constants::SHIMMER_COIN_TYPE;
 use iota_sdk::client::secret::GenerateAddressOptions;
 use iota_sdk::client::secret::SecretManager;
 use iota_sdk::client::Password;
@@ -120,6 +121,7 @@ impl IotaState {
     let wallet = WalletBuilder::new()
       .with_client_options(client)
       .with_secret_manager(SecretManager::Stronghold(wallet_stronghold))
+      .with_coin_type(SHIMMER_COIN_TYPE) // TODO: is it possible to define the coin type from the node or chain id
       .finish()
       .await?;
 

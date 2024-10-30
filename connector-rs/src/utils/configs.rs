@@ -48,7 +48,7 @@ pub struct KeyStorageConfig {
 pub struct WalletStorageConfig {
     /// File path for the KeyStorage
     #[arg(
-        id = "WALLET_SNAPSHOT_PATH",
+        id = "WALLET_STRONGHOLD_SNAPSHOT_PATH",
         long,
         env,
         required = true
