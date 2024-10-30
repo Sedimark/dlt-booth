@@ -56,7 +56,7 @@ async fn get_identity(
     let credential_id = if let Some(cred) = credential {
         let jwt_vc = Jwt::from(cred);
         let issuer_did = JwtCredentialValidatorUtils::extract_issuer_from_jwt::<IotaDID>(&jwt_vc)?;
-        let issuer_document = iota_state.client.resolve_did(&issuer_did).await?;
+        let issuer_document = iota_state.wallet.client().resolve_did(&issuer_did).await?;
 
         let credential_validator = JwtCredentialValidator::with_signature_verifier(EdDSAJwsVerifier::default());
 

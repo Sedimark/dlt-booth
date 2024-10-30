@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 
@@ -37,13 +38,15 @@ use identity_iota::verification::MethodScope;
 use identity_iota::verification::MethodType;
 use identity_iota::verification::jws::JwsAlgorithm;
 use identity_stronghold::StrongholdStorage;
+use iota_sdk::client::secret::GenerateAddressOptions;
+use iota_sdk::client::secret::SecretManager;
 use iota_sdk::client::Password;
-use iota_sdk::client::api::GetAddressesOptions;
 use iota_sdk::client::node_api::indexer::query_parameters::QueryParameter;
 use iota_sdk::client::secret::stronghold::StrongholdSecretManager;
 use iota_sdk::client::Client;
 use iota_sdk::types::block::address::Bech32Address;
-use iota_sdk::types::block::address::Hrp;
+use iota_sdk::wallet::WalletBuilder;
+use iota_sdk::Wallet;
 use serde_json::Value;
 use serde_json::json;
 
@@ -52,11 +55,12 @@ use crate::models::identity::Identity;
 
 use super::configs::DLTConfig;
 use super::configs::KeyStorageConfig;
+use super::configs::WalletStorageConfig;
 
 pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
 
 pub struct IotaState {
-  pub client: Client,
+  pub wallet: Wallet,
   pub stronghold_storage: StrongholdStorage,
   pub key_storage: MemStorage,
   pub address: Bech32Address,
@@ -66,7 +70,7 @@ pub struct IotaState {
 
 impl IotaState {
   // create_or_recover_key_storage
-  pub async fn init(key_storage_config: KeyStorageConfig, dlt_config: DLTConfig) -> Result<Self> {
+  pub async fn init(key_storage_config: KeyStorageConfig, wallet_config: WalletStorageConfig, dlt_config: DLTConfig) -> Result<Self> {
     log::info!("Creating or recovering storage...");
 
     let node_url = dlt_config.node_url;
@@ -100,26 +104,39 @@ impl IotaState {
     let storage = Storage::new(stronghold_storage.clone(), stronghold_storage.clone());
 
     let client = Client::builder()
-    .with_node(&node_url)?
-    .finish()
-    .await?;
+    .with_node(&node_url)?;
 
-    // let address: Address = Self::get_address_with_funds(&client, stronghold_storage.as_secret_manager(), faucet_url.as_str())
-    // .await
-    // .context("failed to get address with funds")?;
+    // Generate a Wallet
+    let wallet_stronghold = StrongholdSecretManager::builder()
+    .password(wallet_config.password.value())
+    .build(wallet_config.file_path)?;
 
-    // TODO: try recover this address, or gen and store 
+    match wallet_stronghold.store_mnemonic(Mnemonic::from(wallet_config.mnemonic.value())).await{
+      Ok(()) => log::info!("Stronghold mnemonic stored"),
+      Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::info!("Stronghold mnemonic already stored"),
+      Err(error) => panic!("Error: {:?}", error)      
+    }
+
+    let wallet = WalletBuilder::new()
+      .with_client_options(client)
+      .with_secret_manager(SecretManager::Stronghold(wallet_stronghold))
+      .finish()
+      .await?;
+
     // Generates or recover an address from the given [`SecretManager`] and adds funds from the faucet.
-    let bech32_hrp: Hrp = client.get_bech32_hrp().await?;
-    let address: Bech32Address = stronghold_storage.as_secret_manager()
-    .generate_ed25519_addresses(
-      GetAddressesOptions::default()
-        .with_range(0..1)
-        .with_bech32_hrp(bech32_hrp),
-    )
-    .await?[0];
+    let identity_account = wallet.get_or_create_account("identity").await?;
+    let bech_address;
+    if let Some(address) = identity_account.addresses().await?.first(){
+      bech_address = address.clone().into_bech32();
+    }
+    else {
+      bech_address = identity_account
+        .generate_ed25519_addresses(1, GenerateAddressOptions::default()).await?.first()
+        .ok_or(anyhow!("Wallet cannot generate addresses"))
+        .and_then(|address| {Ok(address.clone().into_bech32())})?;
+    }
 
-    let iota_state = IotaState{ client, stronghold_storage, key_storage: storage, address, faucet_url, explorer_url };
+    let iota_state = IotaState{ wallet, stronghold_storage, key_storage: storage, address: bech_address, faucet_url, explorer_url };
 
     iota_state.ensure_address_has_funds().await?;
 
@@ -136,10 +153,10 @@ impl IotaState {
   ) -> Result<(IotaDocument, String), ConnectorError> {
         
     let (document, fragment): (IotaDocument, String) = Self::create_did_document( &self, eth_address).await?;
+    let client = self.wallet.client();
+    let alias_output: AliasOutput = client.new_did_output(self.address.into_inner(), document, None).await?;
 
-    let alias_output: AliasOutput = self.client.new_did_output(self.address.into_inner(), document, None).await?;
-
-    let document: IotaDocument = self.client.publish_did_output(
+    let document: IotaDocument = client.publish_did_output(
       self.stronghold_storage.as_secret_manager(),
       alias_output
     ).await?;
@@ -155,7 +172,7 @@ impl IotaState {
     &self,
     eth_address: Option<String>,
   ) -> Result<(IotaDocument, String), ConnectorError> {
-    let network_name: NetworkName = self.client.network_name().await?;
+    let network_name: NetworkName = self.wallet.client().network_name().await?;
     let mut document: IotaDocument = IotaDocument::new(&network_name);
 
     let fragment: String = document
@@ -195,7 +212,7 @@ impl IotaState {
   ) -> Result<IotaDocument, ConnectorError> {
     log::info!("Resolving did...");
     log::info!("{}/identity-resolver/{}", self.explorer_url, did);
-    match self.client.resolve_did(&IotaDID::try_from(did)?).await {
+    match self.wallet.client().resolve_did(&IotaDID::try_from(did)?).await {
         Ok(iota_document) => Ok(iota_document),
         Err(err) => {
           log::info!("Error {}", err);
@@ -247,7 +264,8 @@ impl IotaState {
 
   /// Returns the balance of the given Bech32-encoded `address`.
   async fn get_address_balance(&self) -> anyhow::Result<u64> {
-    let output_ids = self.client
+    let client = self.wallet.client();
+    let output_ids = client
       .basic_output_ids(vec![
         QueryParameter::Address(self.address.to_owned()),
         QueryParameter::HasExpiration(false),
@@ -256,7 +274,7 @@ impl IotaState {
       ])
       .await?;
 
-    let outputs = self.client.get_outputs(&output_ids).await?;
+    let outputs = client.get_outputs(&output_ids).await?;
 
     let mut total_amount = 0;
     for output_response in outputs {

@@ -43,6 +43,25 @@ pub struct KeyStorageConfig {
     pub mnemonic: ConfigSecret,
 }
 
+/// Configuration parameters for the key storage
+#[derive(Args, Debug)]
+pub struct WalletStorageConfig {
+    /// File path for the KeyStorage
+    #[arg(
+        id = "WALLET_SNAPSHOT_PATH",
+        long,
+        env,
+        required = true
+    )]
+    pub file_path: String,
+    /// Secrets that unlocks the KeyStorage
+    #[arg(id = "WALLET_STRONGHOLD_PASSWORD", long, env, required = true)]
+    pub password: ConfigSecret,
+    /// Mnemonic seed to be stored inside the KeyStorage
+    #[arg(id = "WALLET_MNEMONIC", long, env, required = true)]
+    pub mnemonic: ConfigSecret,
+}
+
 /// Configuration parameters for the issuer database
 #[derive(Args, Debug)]
 pub struct DatabaseConfig {

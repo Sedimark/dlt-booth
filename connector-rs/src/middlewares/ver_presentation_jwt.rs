@@ -50,7 +50,7 @@ pub async fn verify_presentation_jwt(
         let nonce = header.nonce().ok_or(ConnectorError::ChallengeMissing)?;
 
         let mut resolver: Resolver<IotaDocument> = Resolver::new();
-        resolver.attach_iota_handler(iota_state.client.clone());
+        resolver.attach_iota_handler(iota_state.wallet.client().clone());
 
         // Resolve the holder's document.
         let holder_did: CoreDID = JwtPresentationValidatorUtils::extract_holder(&presentation_jwt).unwrap();

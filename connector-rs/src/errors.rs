@@ -29,6 +29,8 @@ pub enum ConnectorError {
     VerificationMethodError(#[from] identity_iota::verification::Error),
     #[error("Jwt Verification Error")]
     JwtValidationError(#[from] identity_iota::credential::JwtValidationError),
+    #[error("Wallet unavailable with error: {0}")]
+    WalletError(String),
 
     #[error("Persist File Error")]
     PersistFileError,
@@ -116,6 +118,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::ContractError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::OtherError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ChallengeMissing => StatusCode::BAD_REQUEST,
+            ConnectorError::WalletError(_) => StatusCode::INTERNAL_SERVER_ERROR
         }
     }
 }

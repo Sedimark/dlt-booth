@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
-use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, HttpServerConfig, KeyStorageConfig}, iota::IotaState}, BASE_UPLOADS_DIR};
+use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState}, BASE_UPLOADS_DIR};
 use ethers::providers::{Http, Provider};
 use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
@@ -27,6 +27,10 @@ struct Args {
     /// Configuration section for the KeyStorage
     #[command(flatten)]
     key_storage_config: KeyStorageConfig,
+
+    /// Configuration for the Wallet
+    #[command(flatten)]
+    wallet_config: WalletStorageConfig,
 
     /// Database configuration args
     #[command(flatten)]
@@ -59,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
     let rpc_provider =  args.dlt_config.rpc_provider.clone(); 
     
     // Initialize iota (wallet, client, etc.)
-    let iota_state = IotaState::init(args.key_storage_config, args.dlt_config).await?;
+    let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config).await?;
     let iota_state_data = web::Data::new(iota_state);
 
     log::info!("Initializing custom provider");
