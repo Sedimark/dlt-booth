@@ -118,5 +118,9 @@ pub struct DLTConfig {
 
     /// Explorer Url
     #[arg(long, env, required = true)]   
-    pub explorer_url: String
+    pub explorer_url: String,    
+    
+    /// Issuer Endpoint
+    #[arg(long, env, required = true)]   
+    pub issuer_url: String
 }

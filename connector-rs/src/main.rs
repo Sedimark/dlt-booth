@@ -6,7 +6,8 @@ use std::sync::Arc;
 
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
-use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState}, BASE_UPLOADS_DIR};
+use anyhow::anyhow;
+use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
 use ethers::providers::{Http, Provider};
 use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
@@ -42,7 +43,7 @@ struct Args {
 }
 
 #[actix_web::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> anyhow::Result<()>{
     #[cfg(debug_assertions)]
     dotenv::from_path("./env/.env").expect(".env file not found");
     #[cfg(debug_assertions)]
@@ -61,10 +62,20 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize provider
     let rpc_provider =  args.dlt_config.rpc_provider.clone(); 
+
+    let issuer_url = &args.dlt_config.issuer_url.clone();
     
     // Initialize iota (wallet, client, etc.)
     let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config).await?;
     let iota_state_data = web::Data::new(iota_state);
+
+    let issuer = Issuer::init(issuer_url)?;
+    // retrieve self identity
+    let connector_identity = connector::utils::connector_identity::create_self_identity(&db_pool, &iota_state_data)
+        .await
+        .map_err(|e| {anyhow!("Cannot create connector identity: {}", e)})?;
+
+    issuer.try_register(&connector_identity, &iota_state_data, &db_pool).await?;
 
     log::info!("Initializing custom provider");
     let provider = Arc::new(Provider::<Http>::try_from(rpc_provider)?);

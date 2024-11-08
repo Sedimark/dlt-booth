@@ -6,9 +6,14 @@ use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
 use deadpool_postgres::PoolError;
 use reqwest::StatusCode;
 use serde_json::json;
+use tokio::sync::TryLockError;
+use std::marker::{Send, Sync};
+
+unsafe impl Send for ConnectorError{}
+unsafe impl Sync for ConnectorError{}
+
 #[derive(thiserror::Error, Debug)]
 pub enum ConnectorError {
-
     #[error("Credential Missing")]
     CredentialMissing,
     #[error("Challenge missing")]
@@ -75,6 +80,8 @@ pub enum ConnectorError {
 
     #[error("Other error: {0}")]
     OtherError(String),
+    #[error("Resource cannot be accessed")]
+    ResourceError(#[from] TryLockError)
 }   
 
 impl ResponseError for ConnectorError {
@@ -118,7 +125,8 @@ impl ResponseError for ConnectorError {
             ConnectorError::ContractError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::OtherError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ChallengeMissing => StatusCode::BAD_REQUEST,
-            ConnectorError::WalletError(_) => StatusCode::INTERNAL_SERVER_ERROR
+            ConnectorError::WalletError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ResourceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
