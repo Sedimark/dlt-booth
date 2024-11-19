@@ -7,7 +7,7 @@ use std::sync::Arc;
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use anyhow::anyhow;
-use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
+use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
 use ethers::providers::{Http, Provider};
 use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
@@ -66,7 +66,12 @@ async fn main() -> anyhow::Result<()>{
     let issuer_url = &args.dlt_config.issuer_url.clone();
     
     // Initialize iota (wallet, client, etc.)
-    let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config).await?;
+    let evm_config = EvmAddressConfig::default()
+        .with_coin_type(61)
+        .with_account_index(11)
+        .with_address_index(11);
+
+    let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config, evm_config).await?;
     let iota_state_data = web::Data::new(iota_state);
 
     let issuer = Issuer::init(issuer_url)?;

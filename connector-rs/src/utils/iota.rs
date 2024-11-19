@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+use alloy::signers::Signer;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
@@ -42,7 +43,6 @@ use identity_stronghold::StrongholdStorage;
 use iota_sdk::client::api::GetAddressesOptions;
 use iota_sdk::client::constants::SHIMMER_COIN_TYPE;
 use iota_sdk::client::secret::GenerateAddressOptions;
-use iota_sdk::client::secret::SecretManage;
 use iota_sdk::client::secret::SecretManager;
 use iota_sdk::client::Password;
 use iota_sdk::client::node_api::indexer::query_parameters::QueryParameter;
@@ -57,42 +57,46 @@ use serde_json::json;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 
+use super::alloy_signer::IotaSigner;
 use super::configs::DLTConfig;
+use super::configs::EvmAddressConfig;
 use super::configs::KeyStorageConfig;
 use super::configs::WalletStorageConfig;
 
+
 pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
-
-trait ToEIP191 : AsRef<[u8]> {
-    const HEADER_EIP191: &[u8; 26] = b"\x19Ethereum Signed Message:\n";
-    fn to_eip_191_format(&self) -> Vec<u8> {
-      let len = self.as_ref().len().to_string();
-      let mut payload = Vec::from(Self::HEADER_EIP191);
-      payload.extend_from_slice(len.as_bytes());
-      payload.extend_from_slice(self.as_ref());
-      payload
-    }
-}
-
-impl ToEIP191 for &[u8] {}
 
 pub struct IotaState {
   pub wallet: Wallet,
   pub stronghold_storage: StrongholdStorage,
   pub key_storage: MemStorage,
   pub address: Bech32Address,
-  pub faucet_url: String,
-  pub explorer_url: String
+  pub evm_address_chain: Bip44,
+  pub dlt_config: DLTConfig
+}
+
+impl std::fmt::Debug for IotaState{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IotaState")
+        .field("wallet", &self.wallet)
+        .field("stronghold_storage", &self.stronghold_storage)
+        .field("key_storage", &self.key_storage.key_storage())
+        .field("key_id_storage", &self.key_storage.key_id_storage())
+        .field("address", &self.address)
+        .field("dlt_config", &self.dlt_config)
+        .finish()
+    }
 }
 
 impl IotaState {
   // create_or_recover_key_storage
-  pub async fn init(key_storage_config: KeyStorageConfig, wallet_config: WalletStorageConfig, dlt_config: DLTConfig) -> Result<Self> {
+  pub async fn init(key_storage_config: KeyStorageConfig, 
+    wallet_config: WalletStorageConfig, 
+    dlt_config: DLTConfig,
+    evm_address_config: EvmAddressConfig) -> Result<Self> {
     log::info!("Creating or recovering storage...");
 
-    let node_url = dlt_config.node_url;
-    let faucet_url = dlt_config.faucet_api_endpoint;
-    let explorer_url = dlt_config.explorer_url;
+    let node_url = &dlt_config.node_url;
     
     
     // Setup Stronghold secret_manager
@@ -154,26 +158,16 @@ impl IotaState {
         .and_then(|address| {Ok(address.clone().into_bech32())})?;
     }
 
-    let iota_state = IotaState{ wallet, stronghold_storage, key_storage: storage, address: bech_address, faucet_url, explorer_url };
+    let iota_state = IotaState{ 
+      wallet, 
+      stronghold_storage, 
+      key_storage: storage, 
+      address: bech_address,
+      dlt_config,
+      evm_address_chain: evm_address_config.into() };
 
     iota_state.ensure_address_has_funds().await?;
     Ok(iota_state)
-  }
-
-  pub async fn create_evm_address(&self, coin_type: Option<u32>,address_index: u32) -> Result<String, ConnectorError> {
-    let secret_manager = self.wallet
-      .get_secret_manager()
-      .try_read()
-      .map_err(|_| {ConnectorError::WalletError("Cannot access wallet".to_owned())})?;
-
-    let coin_type = coin_type.unwrap_or(SHIMMER_COIN_TYPE);
-    let options = GetAddressesOptions::default()
-      .with_range(address_index..address_index+1)
-      .with_coin_type(coin_type);
-    secret_manager.generate_evm_addresses(options).await?.first()
-      .ok_or(ConnectorError::WalletError("Cannot create EVM address".to_owned()))
-      .map(|address|{address.to_string()})
-
   }
 
   /// Creates a DID Document and publishes it in a new Alias Output.
@@ -244,7 +238,7 @@ impl IotaState {
     did: &str
   ) -> Result<IotaDocument, ConnectorError> {
     log::info!("Resolving did...");
-    log::info!("{}/identity-resolver/{}", self.explorer_url, did);
+    log::info!("{}/identity-resolver/{}", self.dlt_config.explorer_url, did);
     match self.wallet.client().resolve_did(&IotaDID::try_from(did)?).await {
         Ok(iota_document) => Ok(iota_document),
         Err(err) => {
@@ -274,7 +268,7 @@ impl IotaState {
 
   /// Requests funds from the faucet for the given `address`.
   async fn request_faucet_funds(&self) -> anyhow::Result<()> {
-    iota_sdk::client::request_funds_from_faucet(&self.faucet_url, &self.address).await?;
+    iota_sdk::client::request_funds_from_faucet(&self.dlt_config.faucet_api_endpoint, &self.address).await?;
 
     tokio::time::timeout(std::time::Duration::from_secs(45), async {
       loop {
@@ -315,26 +309,6 @@ impl IotaState {
     }
 
     Ok(total_amount)
-  }
-
-  /// Perform EIP191 signatures using evm key
-  pub async fn sign_evm_data(&self, coin_type: Option<u32>, address_index: u32, payload: impl AsRef<[u8]>) -> Result<Vec<u8>, ConnectorError>{
-    let secret_manager = self.wallet.get_secret_manager().try_read()?;
-    let coin_type = coin_type.unwrap_or(SHIMMER_COIN_TYPE);
-    let chain = Bip44::new(coin_type)
-      .with_account(0)
-      .with_address_index(address_index);
-
-    let signature = secret_manager.sign_secp256k1_ecdsa(&payload.as_ref().to_eip_191_format(), chain).await?.1;
-    let mut signature = Vec::from(signature.to_bytes());
-
-    // it is required to add 27 to the last byte in order to pass EVM verification
-    // https://bitcoin.stackexchange.com/questions/38351/ecdsa-v-r-s-what-is-v/38909#comment46061_38909
-    let last_byte = signature.last_mut().unwrap();
-    *last_byte += 27;
-
-    log::debug!("EIP191 signature completed: {:?}", signature);
-    Ok(signature)
   }
 
   pub async fn sign_data(
@@ -409,6 +383,31 @@ impl IotaState {
     Ok(presentation_jwt)
   }
   
+  /// Return a signer containing an instance of SecretManager
+  pub async fn get_evm_signer<'a>(&self, secret_manager : &'a SecretManager) -> Result<IotaSigner<'a>, ConnectorError>{
+    IotaSigner::new(secret_manager, Some(self.dlt_config.chain_id), self.evm_address_chain).await
+  }
+
+  pub async fn get_evm_address(&self) -> Result<String, ConnectorError>{
+    let secret_manager = self.wallet.get_secret_manager().try_read()?;
+    let address_index = self.evm_address_chain.address_index;
+    let options = GetAddressesOptions::default()
+      .with_coin_type(self.evm_address_chain.coin_type)
+      .with_account_index(self.evm_address_chain.account)
+      .with_range(address_index..address_index+1);
+    secret_manager
+      .generate_evm_addresses(options)
+      .await?
+      .first()
+      .ok_or(ConnectorError::WalletError("Cannot access to wallet".to_owned()))
+      .map(|res| res.to_owned())
+  }
+
+  pub async fn sign_evm_data(&self, payload: impl AsRef<[u8]>) -> Result<Vec<u8>, ConnectorError>{
+    let secret_manager = self.wallet.get_secret_manager().try_read()?;
+    let signer = self.get_evm_signer(&secret_manager).await?;
+    Ok(signer.sign_message(payload.as_ref()).await?.as_bytes().to_vec())
+  }
 }
 
 
@@ -416,9 +415,7 @@ impl IotaState {
 mod tests {
     use std::str::FromStr;
 
-    use ethers::utils::hex::ToHexExt;
-
-    use crate::utils::{configs::{ConfigSecret, DLTConfig, KeyStorageConfig, WalletStorageConfig}, iota::ToEIP191};
+    use crate::utils::configs::{ConfigSecret, DLTConfig, EvmAddressConfig, KeyStorageConfig, WalletStorageConfig};
 
     use super::IotaState;
 
@@ -441,43 +438,11 @@ mod tests {
       issuer_url: "http://localhost:3213".to_owned()
     };
 
-    let iota = IotaState::init(key_storage, wallet_storage, dlt_config).await.unwrap();
-    let address = iota.create_evm_address(Some(60), 0).await.unwrap();
+    let evm_config = EvmAddressConfig::default().with_coin_type(60).with_address_index(0);
+    let iota = IotaState::init(key_storage, wallet_storage, dlt_config, evm_config).await.unwrap();
+    let address = iota.get_evm_address().await.unwrap();
 
     assert_eq!(address, "0xbd73f73c8c096e1a520a3380b1df3ca3fd5ac3c3")
 
-  }
-
-  #[tokio::test]
-  async fn eip191_format(){
-    let message = b"\x19Ethereum Signed Message:\n5nonce";
-    assert_eq!("nonce".as_bytes().to_eip_191_format(), message)
-  }
-
-  #[tokio::test]
-  async fn sign_evm_test(){
-    let key_storage = KeyStorageConfig{ 
-      file_path:"test_ks.stronghold".to_owned(), 
-      password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap(), 
-      mnemonic: ConfigSecret::from_str("grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat").unwrap()};
-    let wallet_storage = WalletStorageConfig{ 
-      file_path:"test_w.stronghold".to_owned(), 
-      password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap(), 
-      mnemonic: ConfigSecret::from_str("grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat").unwrap()};
-    
-    let dlt_config = DLTConfig{ rpc_provider: "https://json-rpc.evm.testnet.shimmer.network".to_owned(),
-      chain_id: 1073,
-      node_url: "https://api.testnet.shimmer.network".to_owned(),
-      faucet_api_endpoint: "https://faucet.testnet.shimmer.network/api/enqueue".to_owned(),
-      explorer_url: "".to_owned(),
-      issuer_url: "http://localhost:3213".to_owned()
-    };
-
-    let iota = IotaState::init(key_storage, wallet_storage, dlt_config).await.unwrap();
-    let signature = iota.sign_evm_data(Some(60), 0, "nonce")
-      .await.unwrap()
-      .encode_hex_with_prefix();
-
-    assert_eq!(signature, "0x2ef9407839892b05046a9ee7e3e37632c6ff644d198bd64a20371be08d051c680ad25bfecb4ca783835ce3ba087633a5816382ff131085b5ea34b8c03a25f0c41b")
   }
 }

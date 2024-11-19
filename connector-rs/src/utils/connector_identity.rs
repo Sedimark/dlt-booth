@@ -11,7 +11,7 @@ pub async fn create_self_identity(db_pool: &Pool, iota_state: &IotaState) -> Res
     log::info!("Create_identity for connector");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
 
-    let eth_address = iota_state.create_evm_address(Some(61),0).await?;
+    let eth_address = iota_state.get_evm_address().await?;
 
     // check if did already present
     let identity = pg_client.get_identity_with_eth_addr(&eth_address)

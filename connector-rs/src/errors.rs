@@ -4,6 +4,7 @@
 
 use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
 use deadpool_postgres::PoolError;
+use hex::FromHexError;
 use reqwest::StatusCode;
 use serde_json::json;
 use tokio::sync::TryLockError;
@@ -65,6 +66,8 @@ pub enum ConnectorError {
     StringToBytesError,
     #[error("Contract error")]
     ContractError,
+    #[error("Unexpected signer error")]
+    SignerError(#[from] alloy::signers::Error),
 
     // Database Errors
     #[error("Row not found")]   
@@ -81,7 +84,9 @@ pub enum ConnectorError {
     #[error("Other error: {0}")]
     OtherError(String),
     #[error("Resource cannot be accessed")]
-    ResourceError(#[from] TryLockError)
+    ResourceError(#[from] TryLockError),
+    #[error("Cannot convert from hex")]
+    ConversionError(#[from] FromHexError)
 }   
 
 impl ResponseError for ConnectorError {
@@ -127,6 +132,8 @@ impl ResponseError for ConnectorError {
             ConnectorError::ChallengeMissing => StatusCode::BAD_REQUEST,
             ConnectorError::WalletError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ResourceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::SignerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ConversionError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -6,3 +6,4 @@ pub mod iota;
 pub mod configs;
 pub mod connector_identity;
 pub mod issuer;
+pub mod alloy_signer;

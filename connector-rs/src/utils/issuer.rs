@@ -53,7 +53,7 @@ impl Issuer{
             .await?;
 
         let ssi_signature = iota_state.sign_data(identity.clone(), challenge.nonce.as_bytes().to_vec(), &Some(challenge.nonce.clone())).await?;
-        let evm_signature = iota_state.sign_evm_data(Some(61), 0, challenge.nonce.as_bytes()).await?;
+        let evm_signature = iota_state.sign_evm_data(challenge.nonce.as_bytes()).await?;
 
         let evm_signature = evm_signature.encode_hex_with_prefix();
 
