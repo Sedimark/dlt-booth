@@ -2,7 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use ethers::contract::abigen;
-use alloy::sol;
+use alloy::{network::Ethereum, providers::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, Identity, RootProvider}, sol, transports::http::{Client, Http}};
 
-abigen!(ServiceBase, "../smart-contracts/ServiceBase.json");
+pub type ScProvider = FillProvider<JoinFill<Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider<Http<Client>>, Http<Client>, Ethereum>;
+
+sol!(
+    #[sol(rpc)]
+    ServiceBase,
+    "../smart-contracts/ServiceBase.json");
+
+sol!(
+    #[sol(rpc)]
+    Factory, 
+    "../smart-contracts/Factory.json");

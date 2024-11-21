@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::sync::Arc;
+use std::str::FromStr;
 
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
-use anyhow::anyhow;
-use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
-use ethers::providers::{Http, Provider};
+use alloy::providers::ProviderBuilder;
+use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState}, BASE_UPLOADS_DIR};
 use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
+use url::Url;
 
 /// Connector command line arguments
 #[derive(Parser, Debug)]
@@ -63,8 +63,7 @@ async fn main() -> anyhow::Result<()>{
     // Initialize provider
     let rpc_provider =  args.dlt_config.rpc_provider.clone(); 
 
-    let issuer_url = &args.dlt_config.issuer_url.clone();
-    
+    let _issuer_url = &args.dlt_config.issuer_url.clone();
     // Initialize iota (wallet, client, etc.)
     let evm_config = EvmAddressConfig::default()
         .with_coin_type(61)
@@ -74,16 +73,11 @@ async fn main() -> anyhow::Result<()>{
     let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config, evm_config).await?;
     let iota_state_data = web::Data::new(iota_state);
 
-    let issuer = Issuer::init(issuer_url)?;
-    // retrieve self identity
-    let connector_identity = connector::utils::connector_identity::create_self_identity(&db_pool, &iota_state_data)
-        .await
-        .map_err(|e| {anyhow!("Cannot create connector identity: {}", e)})?;
-
-    issuer.try_register(&connector_identity, &iota_state_data, &db_pool).await?;
-
     log::info!("Initializing custom provider");
-    let provider = Arc::new(Provider::<Http>::try_from(rpc_provider)?);
+    let provider: ScProvider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .on_http(Url::from_str(&rpc_provider)?);
+    
     let provider_data = web::Data::new(provider);
 
 

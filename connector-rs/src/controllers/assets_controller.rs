@@ -4,15 +4,12 @@
 
 use std::fs::File;
 use std::io::Seek;
-use std::sync::Arc;
 
 use actix_web::web::ReqData;
 use actix_web::{get, patch, post, HttpRequest, Responder};
 use actix_web::{web, HttpResponse};
+use alloy::primitives::{Address, Bytes};
 use deadpool_postgres::Pool;
-use ethers::abi::Address;
-use ethers::providers::{Http, Provider};
-use ethers::types::Bytes;
 use futures_util::TryStreamExt;
 use hex::FromHex;
 use identity_iota::storage::{JwkDocumentExt, JwsSignatureOptions};
@@ -33,7 +30,7 @@ use actix_multipart::form::MultipartForm;
 use uuid::Uuid;
 use blake2::{Blake2b512, Digest};
 use base64::{Engine as _, engine::general_purpose};
-use crate::contracts::ServiceBase;
+use crate::contracts::{ScProvider, ServiceBase};
 
 #[get("/cids/{cid}")] // TODO: improve request size 
 async fn get_description_from_ipfs(
@@ -194,7 +191,7 @@ async fn download_asset(
     req: HttpRequest,
     query_params: web::Query<QueryAssetAlias>, 
     db_pool: web::Data<Pool>,
-    eth_provider: web::Data<Arc<Provider<Http>>>,
+    eth_provider: web::Data<ScProvider>,
     opt_pop_req: Option<ReqData<ProofOfPurchaseRequest>>,
 ) -> Result<HttpResponse, ConnectorError> {
     log::info!("controller download_asset");
@@ -207,15 +204,17 @@ async fn download_asset(
 
     // Verify proof of purchase
     let address: Address = asset_info.nft_address.ok_or(ConnectorError::NftAddressMissing)?.parse().map_err(|_| ConnectorError::AddressRecoveryError)?;
-    let client = eth_provider.get_ref().clone();
-    let contract = ServiceBase::new(address, client);
+    let contract = ServiceBase::new(address, eth_provider.get_ref().clone());
 
     // Convert the signature and nonce to bytes
     let eth_sig_bytes = Bytes::from(Vec::from_hex(pop_req.eth_signature.strip_prefix("0x").ok_or(ConnectorError::StringToBytesError)?).map_err(|_| ConnectorError::StringToBytesError)?);
     let nonce_bytes = Bytes::from(pop_req.nonce.into_bytes());
 
-    // Call verifyPoP on the contract
-    let pop = contract.verify_proof_of_purchase(eth_sig_bytes, nonce_bytes).await.map_err(|_| ConnectorError::ContractError)?;
+    let pop = contract.verifyProofOfPurchase(eth_sig_bytes, nonce_bytes)
+        .call()
+        .await
+        .map(|res| res._0)
+        .unwrap_or(false);
 
     if pop == false {
         log::info!("Proof of purchase failed, user not allower to download asset");
@@ -237,7 +236,7 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     .service(get_asset_aliases)     
     .service(upload_asset)
     .service(get_asset_info_from_alias)   
-    .service(download_asset)       
+    .service(download_asset)
     .service(patch_asset)
     .service(get_asset_info)
     .service(get_description_from_ipfs);

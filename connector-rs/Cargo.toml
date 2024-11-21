@@ -49,12 +49,11 @@ ipfs-api-backend-actix = "0.7.0"
 blake2 = "0.10.6"
 base64 = "0.21.5"
 futures-util = "0.3.30"
-ethers = { version = "2.0.8", features = ["legacy"] }
 actix-web-lab = "0.20.1"
 clap = { version = "4.4.2", features = ["derive", "env"] }
 url = "2.5.2"
 zeroize = "1.8.1"
-alloy = {version = "0.6.4", features = ["sol-types", "json", "signers"] }
+alloy = {version = "0.6.4", features = ["sol-types", "json", "signers", "network", "consensus", "providers", "contract", "transports"] }
 
 [lib]
 name = "connector"

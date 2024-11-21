@@ -4,7 +4,7 @@
 
 use std::str::FromStr;
 
-use alloy::{primitives::{Address, ChainId, PrimitiveSignature, B256}, signers::{Error, Signer, UnsupportedSignerOperation}};
+use alloy::{consensus::SignableTransaction, network::TxSigner, primitives::{Address, ChainId, PrimitiveSignature, SignatureError, B256}, signers::{Error, Signer, UnsupportedSignerOperation}};
 use async_trait::async_trait;
 use alloy::signers::Result;
 use crypto::keys::bip44::Bip44;
@@ -24,7 +24,7 @@ trait ToEIP191 : AsRef<[u8]> {
 
 impl ToEIP191 for &[u8] {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IotaSigner<'a>{
     secret_manager: &'a SecretManager,
     address: Address,
@@ -121,6 +121,27 @@ impl Signer for IotaSigner<'_> {
     }
 }
 
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl TxSigner<PrimitiveSignature> for IotaSigner<'_>{
+    /// Get the address of the signer.
+    fn address(&self) -> Address{
+        self.address
+    }
+
+    /// Asynchronously sign an unsigned transaction.
+    #[doc(alias = "sign_tx")]
+    async fn sign_transaction(
+        &self,
+        tx: &mut dyn SignableTransaction<PrimitiveSignature>,
+    ) -> alloy::signers::Result<PrimitiveSignature>{
+        let rlp = tx.encoded_for_signing();
+        let signature = self.sign_evm_data(rlp).await
+            .map_err(|_| {Error::Other("stronghold cannot perform the signature".into())})?;
+        PrimitiveSignature::try_from(signature.as_slice())
+            .map_err(|_| {Error::SignatureError(SignatureError::FromBytes("cannot convert from stronghold signature"))})
+    }
+}
 #[cfg(test)]
 mod tests{
     use alloy::{hex::ToHexExt, signers::Signer};

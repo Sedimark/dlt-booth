@@ -4,7 +4,6 @@
 
 use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
 use deadpool_postgres::PoolError;
-use hex::FromHexError;
 use reqwest::StatusCode;
 use serde_json::json;
 use tokio::sync::TryLockError;
@@ -86,7 +85,7 @@ pub enum ConnectorError {
     #[error("Resource cannot be accessed")]
     ResourceError(#[from] TryLockError),
     #[error("Cannot convert from hex")]
-    ConversionError(#[from] FromHexError)
+    ConversionError(#[from] alloy::hex::FromHexError)
 }   
 
 impl ResponseError for ConnectorError {

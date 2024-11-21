@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::str::FromStr;
+use alloy::hex::ToHexExt;
 use deadpool_postgres::Pool;
-use ethers::utils::hex::ToHexExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
