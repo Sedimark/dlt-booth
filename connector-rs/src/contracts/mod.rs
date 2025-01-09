@@ -10,8 +10,3 @@ sol!(
     #[sol(rpc)]
     ServiceBase,
     "../smart-contracts/ServiceBase.json");
-
-sol!(
-    #[sol(rpc)]
-    Factory, 
-    "../smart-contracts/Factory.json");
