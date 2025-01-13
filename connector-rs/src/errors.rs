@@ -85,7 +85,9 @@ pub enum ConnectorError {
     #[error("Resource cannot be accessed")]
     ResourceError(#[from] TryLockError),
     #[error("Cannot convert from hex")]
-    ConversionError(#[from] alloy::hex::FromHexError)
+    ConversionError(#[from] alloy::hex::FromHexError),
+    #[error("Bad request")]
+    ReqwestError(#[from] reqwest::Error)
 }   
 
 impl ResponseError for ConnectorError {
@@ -133,6 +135,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::ResourceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::SignerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ConversionError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ReqwestError(_) => StatusCode::INTERNAL_SERVER_ERROR
         }
     }
 }

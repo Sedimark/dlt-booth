@@ -33,6 +33,13 @@ pub struct CredentialRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CredentialData {
+    pub name: String,
+    pub surname: String
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SignDataRequest {
     pub payload: String, // TODO: bytes
     pub nonce: Option<String>

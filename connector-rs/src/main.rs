@@ -7,7 +7,7 @@ use std::str::FromStr;
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use alloy::providers::ProviderBuilder;
-use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState}, BASE_UPLOADS_DIR};
+use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
 use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
 use url::Url;
@@ -63,15 +63,14 @@ async fn main() -> anyhow::Result<()>{
     // Initialize provider
     let rpc_provider =  args.dlt_config.rpc_provider.clone(); 
 
-    let _issuer_url = &args.dlt_config.issuer_url.clone();
+    let issuer_url = &args.dlt_config.issuer_url.clone();
     // Initialize iota (wallet, client, etc.)
-    let evm_config = EvmAddressConfig::default()
-        .with_coin_type(61)
-        .with_account_index(11)
-        .with_address_index(11);
+    let evm_config = EvmAddressConfig::default();
 
     let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config, evm_config).await?;
     let iota_state_data = web::Data::new(iota_state);
+
+    let issuer_client = Issuer::init(issuer_url)?;
 
     log::info!("Initializing custom provider");
     let provider: ScProvider = ProviderBuilder::new()
@@ -101,10 +100,12 @@ async fn main() -> anyhow::Result<()>{
         .app_data(web::Data::new(db_pool.clone()))
         .app_data(iota_state_data.clone())
         .app_data(provider_data.clone())
+        .app_data(web::Data::new(issuer_client.clone()))
         .service(web::scope("/api")
             .configure(controllers::identities_controller::scoped_config)
             .configure(controllers::assets_controller::scoped_config)
             .configure(controllers::challenges_controller::scoped_config)
+            .configure(controllers::delegated_identities::scoped_config)
         )
         .wrap(cors)
         .wrap(Logger::default())

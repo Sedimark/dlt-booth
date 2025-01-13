@@ -4,15 +4,15 @@
 
 use std::str::FromStr;
 use alloy::hex::ToHexExt;
-use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
 
-use crate::{models::{self, identity::{CredentialIssuedResponse, Identity}}, repository::identity_operations::IdentityExt};
+use crate::{dtos::CredentialData, errors::ConnectorError, models::{self, identity::{CredentialIssuedResponse, Identity}}};
 
 use super::iota::IotaState;
 
+#[derive(Debug, Clone)]
 pub struct Issuer{
     base_url: Url,
     client: reqwest::Client
@@ -36,9 +36,7 @@ impl Issuer{
     }
 
     /// Attempt to register an identity to the issuer
-    pub async fn try_register(&self, identity: &models::identity::Identity, iota_state: &IotaState, db_pool: &Pool) -> anyhow::Result<Identity>{
-        let pg_client = db_pool.get().await.map_err(crate::errors::ConnectorError::PoolError)?;
-
+    pub async fn register(&self, identity: &models::identity::Identity, iota_state: &IotaState, credential_data: CredentialData) -> Result<Identity, ConnectorError>{
         let mut challenge_url = self.base_url.clone();
         let client = &self.client;
 
@@ -57,11 +55,7 @@ impl Issuer{
 
         let evm_signature = evm_signature.encode_hex_with_prefix();
 
-        let subject = json!({
-            "id": identity.did,
-            "name": "DLT",
-            "surname": "Connector"
-        });
+        let subject = json!(credential_data);
 
         let credential_req_body = json!({
             "did": identity.did,
@@ -82,8 +76,8 @@ impl Issuer{
             .json()
             .await?;
 
-        
-        let identity = pg_client.set_credential(&identity.eth_address, &Some(credential.credential_jwt.as_str().to_owned())).await?;
-        Ok(identity)
+        let mut identity_with_cred = identity.clone();
+        identity_with_cred.vcredential = Some(credential.credential_jwt.as_str().to_owned());
+        Ok(identity_with_cred)
     } 
 }
