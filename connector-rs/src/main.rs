@@ -34,11 +34,7 @@ struct Args {
 
     /// Database configuration args
     #[command(flatten)]
-    database_config: DatabaseConfig,
-
-    /// Ipfs client api url
-    #[arg(long, env, required=true)]
-    ipfs_url: url::Url
+    database_config: DatabaseConfig
 }
 
 #[actix_web::main]
