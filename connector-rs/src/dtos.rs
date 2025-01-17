@@ -3,10 +3,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::{Deserialize, Serialize};
-use actix_multipart::form::{
-    tempfile::TempFile,
-    MultipartForm, text::Text,
-};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,16 +46,6 @@ pub struct SignDataRequest {
 pub struct PresentationRequest {
     pub challenge: String,
     pub eth_signature: Option<String>
-}
-
-#[derive(Debug, MultipartForm)]
-pub struct UploadForm {
-    #[multipart(rename = "files")]
-    pub files: Vec<TempFile>,
-    #[multipart(rename = "ethAddress")]
-    pub eth_address: Text<String>,
-    pub alias: Text<String>
-
 }
 
 #[derive(Debug, Deserialize, Serialize)]

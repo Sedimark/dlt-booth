@@ -8,7 +8,6 @@ use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use alloy::providers::ProviderBuilder;
 use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
-use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
 use clap::Parser;
 use url::Url;
 
@@ -91,19 +90,14 @@ async fn main() -> anyhow::Result<()>{
         .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
         .allowed_header(http::header::CONTENT_TYPE)
         .max_age(3600);
-        
-        let ipfs_client = IpfsClient::from_str(args.ipfs_url.as_str())
-            .unwrap(); // This may let crash the app. TODO: there must be a better solution.
 
         App::new()
-        .app_data(web::Data::new(ipfs_client))
         .app_data(web::Data::new(db_pool.clone()))
         .app_data(iota_state_data.clone())
         .app_data(provider_data.clone())
         .app_data(web::Data::new(issuer_client.clone()))
         .service(web::scope("/api")
             .configure(controllers::identities_controller::scoped_config)
-            .configure(controllers::assets_controller::scoped_config)
             .configure(controllers::challenges_controller::scoped_config)
             .configure(controllers::delegated_identities::scoped_config)
         )

@@ -45,8 +45,6 @@ pub enum ConnectorError {
     FileNameMissing,
     #[error("File Upload Error")]
     FileUploadError,
-    #[error("Ipfs Upload Error")]
-    IpfsUploadError(#[from] ipfs_api_backend_actix::Error),
     #[error("serde_json Error")]
     SerdeJsonError(#[from] serde_json::Error),
     #[error("Missing Id Error")]
@@ -116,7 +114,6 @@ impl ResponseError for ConnectorError {
             ConnectorError::CreatingUploadFolder(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::FileNameMissing => StatusCode::BAD_REQUEST,
             ConnectorError::FileUploadError => StatusCode::BAD_REQUEST,
-            ConnectorError::IpfsUploadError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::VerificationMethodError(_) => StatusCode::INTERNAL_SERVER_ERROR,

@@ -11,9 +11,7 @@ inherits = "release"
 
 [dependencies]
 actix-web = "4.4.0"
-actix-multipart = "0.6.1"
 actix-cors = "0.6.4"
-actix-files = "0.6.5"
 
 anyhow = "1.0.75"
 dotenv = "0.15.0"
@@ -41,9 +39,6 @@ deadpool-postgres = { version = "0.11.0", features = ["serde"]}
 tokio-pg-mapper = "0.2.0"
 tokio-pg-mapper-derive = "0.2.0"
 tokio-postgres = "0.7.6"
-
-# ipfs
-ipfs-api-backend-actix = "0.7.0"
 
 # others
 blake2 = "0.10.6"
