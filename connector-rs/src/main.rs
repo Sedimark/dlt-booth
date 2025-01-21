@@ -7,7 +7,7 @@ use std::str::FromStr;
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use alloy::providers::ProviderBuilder;
-use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}, BASE_UPLOADS_DIR};
+use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}};
 use clap::Parser;
 use url::Url;
 
@@ -73,10 +73,6 @@ async fn main() -> anyhow::Result<()>{
         .on_http(Url::from_str(&rpc_provider)?);
     
     let provider_data = web::Data::new(provider);
-
-
-    // Create uploads directory if it doesn't exist
-    std::fs::create_dir_all(BASE_UPLOADS_DIR)?;
 
     log::info!("Starting up on {}:{}", address, port);
     HttpServer::new(move || {
