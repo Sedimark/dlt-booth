@@ -80,4 +80,20 @@ impl Issuer{
         identity_with_cred.vcredential = Some(credential.credential_jwt.as_str().to_owned());
         Ok(identity_with_cred)
     } 
+
+    /// Request to issuer to revoke credential
+    pub async fn revoke_vc(&self, credential_id: &str) -> Result<(), ConnectorError>{
+        let mut issuer_url = self.base_url.clone();
+        let client = &self.client;
+
+        //build path for revocation endopoint
+        issuer_url.set_path(format!("/api/credentials/{}", credential_id).as_str());
+
+        client.delete(issuer_url)
+        .send()
+        .await?
+        .error_for_status_ref()?;
+    
+        Ok(())
+    }
 }

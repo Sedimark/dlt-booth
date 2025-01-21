@@ -2,9 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::post;
+use actix_web::{delete, post};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
+use identity_eddsa_verifier::EdDSAJwsVerifier;
+use identity_iota::core::Object;
+use identity_iota::credential::{FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils};
+use identity_iota::iota::{IotaDID, IotaIdentityClientExt};
 use serde_json::json;
 
 use crate::dtos::CredentialData;
@@ -22,7 +26,7 @@ async fn create_identity(
     iota_state: web::Data<IotaState>,
     issuer_client: web::Data<Issuer>
 ) -> Result<HttpResponse, ConnectorError> {
-    log::info!("controller create_identity");
+    log::debug!("controller create_identity");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let eth_address = iota_state.get_evm_address().await?;
 
@@ -69,11 +73,53 @@ async fn create_identity(
 
 }
 
+#[delete("/identities")]
+async fn delete_identity(
+    db_pool: web::Data<Pool>,
+    iota_state: web::Data<IotaState>,
+    issuer_client: web::Data<Issuer>
+)-> Result<HttpResponse, ConnectorError>{
+    log::debug!("controller delete_identity");
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let eth_address = iota_state.get_evm_address().await?;
+
+    let credential = pg_client.get_identity_with_eth_addr(&eth_address).await?.vcredential;
+
+    if let Some(credential) = credential{
+        let jwt_vc = Jwt::from(credential);
+        let issuer_did = JwtCredentialValidatorUtils::extract_issuer_from_jwt::<IotaDID>(&jwt_vc)?;
+        let issuer_document = iota_state.wallet.client().resolve_did(&issuer_did).await?;
+        let credential_validator = JwtCredentialValidator::with_signature_verifier(EdDSAJwsVerifier::default());
+
+        let decoded_credential = credential_validator
+        .validate::<_, Object>(&jwt_vc, &issuer_document, &JwtCredentialValidationOptions::default(), FailFast::FirstError)
+        .map_err(|err| ConnectorError::OtherError(format!("Error: {}", err.to_string())))?;
+
+        
+        let id = decoded_credential.credential.id
+        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?
+        .into_string().strip_prefix("https://example.market/credentials/")
+        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?
+        .to_string();
+
+        issuer_client.revoke_vc(&id).await?;
+
+        // if revocation is ok remove the jwt from the db
+        pg_client.set_credential(&eth_address, &None).await?;
+    }
+    else{
+        return Ok(HttpResponse::NotFound().json(json!({"error": "Credential not found"})));
+    }
+
+    Ok(HttpResponse::Ok().finish())
+}
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
     .service(web::scope("/delegated")
-        .service(create_identity));
+        .service(create_identity)
+        .service(delete_identity)
+    );
     //.service(get_identity)     
     //.service(patch_identity)       
     //.service(sign_data)
