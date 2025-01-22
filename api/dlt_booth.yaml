@@ -1,0 +1,104 @@
+openapi: '3.0.1'
+info:
+  version: '0.1.2'
+  title: 'DLT Booth API'
+  description: This document specifies the REST API for the Connector service.
+externalDocs:
+  description: Github 
+  url: https://github.com/Sedimark/dlt-booth
+servers:
+- url: http://localhost:1234
+tags:
+- name: Delegated
+  description: Identity operations managed directly by the DLT Booth.
+- name: Other
+paths:
+
+################################################################
+#                                                              #
+#                          Identites                           #
+#                                                              #
+################################################################
+
+  /delegated/identities:
+    post:
+      summary: Creates a user identity.
+      description: In detail, it creates a new Did embedding in the document an identity public key and an ethereum address securely stored in the booth. Finally reaches the Issuer in order to receive a Verifiable Credential that contains the claims provided in the request body. 
+      tags:
+      - Delegated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectData'
+      responses: 
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialJwt'  
+        403:
+          description:  The operation should not be executed again without deleting an existing identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Operation aborted due to an unexpected error during execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Delegated
+      summary: Delete user identity
+      description: In detail, the Booth requests to the issuer to revoke the Verifiable Credential. Finally, the identity stored in the Booth is deleted.
+      responses:
+        200: 
+          description: Deleted
+        404:
+          description:  Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Operation aborted due to an unexpected error during execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+################################################################
+#                                                              #
+#                          COMPONENTS                          #
+#                                                              #
+################################################################
+
+components:
+  schemas:
+    CredentialJwt:
+      type: object
+      properties:
+        credential:
+          description: The verifiable credential of the user in JWT format (Upon identity creation, its value is undefined, the credential must be requested to an Issuer).
+          type: string
+          example: "eyJraWQiOiJkaWQ6aW90YTpybXM6MHhhMTM2Yjk1YTFmMzc0ZWQwN2M1NDkzOTQ0ZmMwYWYyZjM5NmU3YzExNTAzNDhhZmJhZGVlYmI5ZmVkNjExYzMxI3BjT0lUbnUxSTBqSm9HM3JJNnFaZGtrVTVLaDUwNnctYnExc2t5QjBXOTAiLCJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.eyJleHAiOjE3NDI4OTMyNDUsImlzcyI6ImRpZDppb3RhOnJtczoweGExMzZiOTVhMWYzNzRlZDA3YzU0OTM5NDRmYzBhZjJmMzk2ZTdjMTE1MDM0OGFmYmFkZWViYjlmZWQ2MTFjMzEiLCJuYmYiOjE3MTEyNzA4NDUsImp0aSI6Imh0dHBzOi8vZXhhbXBsZS5tYXJrZXQvY3JlZGVudGlhbHMvMSIsInN1YiI6ImRpZDppb3RhOnJtczoweGIwYTVjNTM5NTNhMjhhZDJmMzg4MGIwOTg3ODI2NWU5OGRiMGJkM2Y5NmQxNjZiMjMzZWM4NGNkYWRiYjI0MmIiLCJ2YyI6eyJAY29udGV4dCI6Imh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIk1hcmtldHBsYWNlQ3JlZGVudGlhbCJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJuYW1lIjoiSm9obiIsInN1cm5hbWUiOiJEb2UgRG9lIiwidXNlck9mIjoiU0VESU1BUksgbWFya2V0cGxhY2UifX19.-6dTIWJUwmaOQq6IJz4hh3SEwBz2lKnUmY19av4nZY3wcTi7hp0TY2rn3G8vsMYIft4VFZCwSlAHi28GwpiBAQ"
+    SubjectData:
+      type: object
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          description: A human readable error message
+          type: string

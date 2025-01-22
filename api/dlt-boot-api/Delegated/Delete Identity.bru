@@ -1,0 +1,11 @@
+meta {
+  name: Delete Identity
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{BASE_URL}}/delegated/identities
+  body: json
+  auth: none
+}
