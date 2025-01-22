@@ -57,7 +57,7 @@ async fn create_identity(
 
     // Check if VC already exists
     if let Some(_) = new_identity.vcredential {
-        return Ok(HttpResponse::Forbidden().json(json!({"error": "Cannot create a VC twice"})))
+        return Ok(HttpResponse::Forbidden().json(json!({"message": "Cannot create a VC twice"})))
     }
 
     // create a new VC and register by the Issuer
@@ -68,7 +68,7 @@ async fn create_identity(
     
     match updated_identity.vcredential {
         Some(vc) => Ok(HttpResponse::Ok().json(json!({"credential": vc}))),
-        None => Ok(HttpResponse::InternalServerError().json(json!({"error": "Unexpected error when reading VC"})))
+        None => Ok(HttpResponse::InternalServerError().json(json!({"message": "Unexpected error when reading VC"})))
     }
 
 }
@@ -108,7 +108,7 @@ async fn delete_identity(
         pg_client.set_credential(&eth_address, &None).await?;
     }
     else{
-        return Ok(HttpResponse::NotFound().json(json!({"error": "Credential not found"})));
+        return Ok(HttpResponse::NotFound().json(json!({"message": "Credential not found"})));
     }
 
     Ok(HttpResponse::Ok().finish())
