@@ -1,11 +1,9 @@
 services:
-  connector-rs:
+  dlt-booth:
     build:
       context: .
       dockerfile: Dockerfile
-    image: connector-rs
-    hostname: connector-rs
-    container_name: connector-rs
+    image: dlt-booth
     restart: unless-stopped
     ports:
       - "8085:8085"
@@ -14,6 +12,9 @@ services:
        condition: service_healthy 
     profiles:
       - deploy
+    #enables data persistance of key storage and wallet. Remove it to disable data persistance
+    volumes:
+      - "./docker_data:/data"
     networks:
       - connector-net
     env_file:
