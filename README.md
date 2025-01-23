@@ -40,10 +40,19 @@ DB_HOST=127.0.0.1 # "postgres" for deploying, "127.0.0.1 " for dev
 DB_PORT=5432
 DB_MAX_POOL_SIZE=16
 
-# IPFS CONFIG
-IPFS_URL="http://ipfs:5001"
 ```
 ## Running the Application
+
+### Running from Docker
+
+A Docker compose file has been set for deploying. A Postgres database and the application container is created.
+
+```bash
+docker compose --profile deploy up -d
+```
+
+Remember to configure environnment variables properly before running the command.
+
 
 ## Dev Utils
 - [OpenAPI spec](/api/dlt_booth.yaml)
