@@ -1,0 +1,18 @@
+meta {
+  name: Create Identity
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/delegated/identities
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "",
+    "surname": ""
+  }
+}

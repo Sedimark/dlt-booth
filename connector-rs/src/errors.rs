@@ -6,11 +6,18 @@ use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
 use deadpool_postgres::PoolError;
 use reqwest::StatusCode;
 use serde_json::json;
+use tokio::sync::TryLockError;
+use std::marker::{Send, Sync};
+
+unsafe impl Send for ConnectorError{}
+unsafe impl Sync for ConnectorError{}
+
 #[derive(thiserror::Error, Debug)]
 pub enum ConnectorError {
-
     #[error("Credential Missing")]
     CredentialMissing,
+    #[error("Challenge missing")]
+    ChallengeMissing,
 
     // IOTA Errors
     #[error("Iota Client Error")]
@@ -27,6 +34,8 @@ pub enum ConnectorError {
     VerificationMethodError(#[from] identity_iota::verification::Error),
     #[error("Jwt Verification Error")]
     JwtValidationError(#[from] identity_iota::credential::JwtValidationError),
+    #[error("Wallet unavailable with error: {0}")]
+    WalletError(String),
 
     #[error("Persist File Error")]
     PersistFileError,
@@ -36,8 +45,6 @@ pub enum ConnectorError {
     FileNameMissing,
     #[error("File Upload Error")]
     FileUploadError,
-    #[error("Ipfs Upload Error")]
-    IpfsUploadError(#[from] ipfs_api_backend_actix::Error),
     #[error("serde_json Error")]
     SerdeJsonError(#[from] serde_json::Error),
     #[error("Missing Id Error")]
@@ -56,6 +63,8 @@ pub enum ConnectorError {
     StringToBytesError,
     #[error("Contract error")]
     ContractError,
+    #[error("Unexpected signer error")]
+    SignerError(#[from] alloy::signers::Error),
 
     // Database Errors
     #[error("Row not found")]   
@@ -71,6 +80,12 @@ pub enum ConnectorError {
 
     #[error("Other error: {0}")]
     OtherError(String),
+    #[error("Resource cannot be accessed")]
+    ResourceError(#[from] TryLockError),
+    #[error("Cannot convert from hex")]
+    ConversionError(#[from] alloy::hex::FromHexError),
+    #[error("Bad request")]
+    ReqwestError(#[from] reqwest::Error)
 }   
 
 impl ResponseError for ConnectorError {
@@ -99,7 +114,6 @@ impl ResponseError for ConnectorError {
             ConnectorError::CreatingUploadFolder(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::FileNameMissing => StatusCode::BAD_REQUEST,
             ConnectorError::FileUploadError => StatusCode::BAD_REQUEST,
-            ConnectorError::IpfsUploadError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::VerificationMethodError(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -113,7 +127,12 @@ impl ResponseError for ConnectorError {
             ConnectorError::StringToBytesError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ContractError => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::OtherError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-
+            ConnectorError::ChallengeMissing => StatusCode::BAD_REQUEST,
+            ConnectorError::WalletError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ResourceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::SignerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ConversionError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ReqwestError(_) => StatusCode::INTERNAL_SERVER_ERROR
         }
     }
 }

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use crypto::keys::bip44::Bip44;
+use iota_sdk::client::constants::SHIMMER_COIN_TYPE;
 use zeroize::ZeroizeOnDrop;
 use clap::Args;
 
@@ -40,6 +42,25 @@ pub struct KeyStorageConfig {
     pub password: ConfigSecret,
     /// Mnemonic seed to be stored inside the KeyStorage
     #[arg(id = "KEY_STORAGE_MNEMONIC", long, env, required = true)]
+    pub mnemonic: ConfigSecret,
+}
+
+/// Configuration parameters for the key storage
+#[derive(Args, Debug)]
+pub struct WalletStorageConfig {
+    /// File path for the KeyStorage
+    #[arg(
+        id = "WALLET_STRONGHOLD_SNAPSHOT_PATH",
+        long,
+        env,
+        required = true
+    )]
+    pub file_path: String,
+    /// Secrets that unlocks the KeyStorage
+    #[arg(id = "WALLET_STRONGHOLD_PASSWORD", long, env, required = true)]
+    pub password: ConfigSecret,
+    /// Mnemonic seed to be stored inside the KeyStorage
+    #[arg(id = "WALLET_MNEMONIC", long, env, required = true)]
     pub mnemonic: ConfigSecret,
 }
 
@@ -99,5 +120,48 @@ pub struct DLTConfig {
 
     /// Explorer Url
     #[arg(long, env, required = true)]   
-    pub explorer_url: String
+    pub explorer_url: String,    
+    
+    /// Issuer Endpoint
+    #[arg(long, env, required = true)]   
+    pub issuer_url: String
+}
+
+/// Configuration for Bip44 address generation
+#[derive(Debug, Clone, Copy)]
+pub struct EvmAddressConfig {
+    coin_type: u32,
+    account_index: u32,
+    address_index: u32,
+}
+
+impl Default for EvmAddressConfig{
+    fn default() -> Self {
+        Self { coin_type: SHIMMER_COIN_TYPE, account_index: 0, address_index: 0}
+    }
+}
+
+impl Into<Bip44> for EvmAddressConfig{
+    fn into(self) -> Bip44 {
+        Bip44::new(self.coin_type)
+        .with_account(self.account_index)
+        .with_address_index(self.address_index)
+    }
+}
+
+impl EvmAddressConfig{
+    pub fn with_coin_type(mut self, coin_type: u32) -> Self{
+        self.coin_type = coin_type;
+        self
+    }
+
+    pub fn with_address_index(mut self, address_index: u32) -> Self{
+        self.address_index = address_index;
+        self
+    }
+
+    pub fn with_account_index(mut self, account_index: u32) -> Self{
+        self.account_index = account_index;
+        self
+    }
 }

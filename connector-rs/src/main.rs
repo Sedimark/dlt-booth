@@ -2,14 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::sync::Arc;
+use std::str::FromStr;
 
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
-use connector::{controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, HttpServerConfig, KeyStorageConfig}, iota::IotaState}, BASE_UPLOADS_DIR};
-use ethers::providers::{Http, Provider};
-use ipfs_api_backend_actix::{IpfsClient, TryFromUri};
+use alloy::providers::ProviderBuilder;
+use connector::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}};
 use clap::Parser;
+use url::Url;
 
 /// Connector command line arguments
 #[derive(Parser, Debug)]
@@ -28,17 +28,17 @@ struct Args {
     #[command(flatten)]
     key_storage_config: KeyStorageConfig,
 
+    /// Configuration for the Wallet
+    #[command(flatten)]
+    wallet_config: WalletStorageConfig,
+
     /// Database configuration args
     #[command(flatten)]
-    database_config: DatabaseConfig,
-
-    /// Ipfs client api url
-    #[arg(long, env, required=true)]
-    ipfs_url: url::Url
+    database_config: DatabaseConfig
 }
 
 #[actix_web::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> anyhow::Result<()>{
     #[cfg(debug_assertions)]
     dotenv::from_path("./env/.env").expect(".env file not found");
     #[cfg(debug_assertions)]
@@ -57,18 +57,22 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize provider
     let rpc_provider =  args.dlt_config.rpc_provider.clone(); 
-    
+
+    let issuer_url = &args.dlt_config.issuer_url.clone();
     // Initialize iota (wallet, client, etc.)
-    let iota_state = IotaState::init(args.key_storage_config, args.dlt_config).await?;
+    let evm_config = EvmAddressConfig::default();
+
+    let iota_state = IotaState::init(args.key_storage_config, args.wallet_config, args.dlt_config, evm_config).await?;
     let iota_state_data = web::Data::new(iota_state);
 
+    let issuer_client = Issuer::init(issuer_url)?;
+
     log::info!("Initializing custom provider");
-    let provider = Arc::new(Provider::<Http>::try_from(rpc_provider)?);
+    let provider: ScProvider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .on_http(Url::from_str(&rpc_provider)?);
+    
     let provider_data = web::Data::new(provider);
-
-
-    // Create uploads directory if it doesn't exist
-    std::fs::create_dir_all(BASE_UPLOADS_DIR)?;
 
     log::info!("Starting up on {}:{}", address, port);
     HttpServer::new(move || {
@@ -78,19 +82,16 @@ async fn main() -> anyhow::Result<()> {
         .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
         .allowed_header(http::header::CONTENT_TYPE)
         .max_age(3600);
-        
-        let ipfs_client = IpfsClient::from_str(args.ipfs_url.as_str())
-            .unwrap(); // This may let crash the app. TODO: there must be a better solution.
 
         App::new()
-        .app_data(web::Data::new(ipfs_client)) // connect to the default IPFS API address http://localhost:5001
         .app_data(web::Data::new(db_pool.clone()))
         .app_data(iota_state_data.clone())
         .app_data(provider_data.clone())
+        .app_data(web::Data::new(issuer_client.clone()))
         .service(web::scope("/api")
-            .configure(controllers::identities_controller::scoped_config)
-            .configure(controllers::assets_controller::scoped_config)
-            .configure(controllers::challenges_controller::scoped_config)
+            //.configure(controllers::identities_controller::scoped_config)
+            //.configure(controllers::challenges_controller::scoped_config)
+            .configure(controllers::delegated_identities::scoped_config)
         )
         .wrap(cors)
         .wrap(Logger::default())
