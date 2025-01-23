@@ -1,12 +1,31 @@
 # DLT Booth
 
+DLT Booth is a fork of the [connector component of the Mediterraneus Protocol](https://github.com/Cybersecurity-LINKS/mediterraneus-connector). This component has been customized to be integrated into the Sedimark Toolbox.
+
+DLT Booth consists in an http server written in Rust and deployed as a docker image, which requires to be connected to a Postgres database. 
+
+### Main functionalities
+
+DLT Booth can be used to execute operation on a configured EVM through http requests. It also communicates with a configured DLT to perform SSI operations:
+
+**SSI operations**
+- Create a DID Document
+- Publish a DID Document on the configured DLT
+- Request for Verifiable Credential issuance to a Issuer for Sedimark marketplace onboarding
+- Request for Verifiable Credential revocation
+- Create Verifiable Presentation
+
+**EVM operations**
+- EIP191 formatted message signatures
+- Execute EVM transactions
+
 ## ToC
 
 1. [Environnement setup](#environnement-setup)
 2. [Running the application](#running-the-application)
 3. [Useful tools for development and integration](#dev-utils)
 
-## Environnement setup
+## Environement setup
 In connector-rs/env folder, create a .env file starting from .env.example and update the values accordingly to your development enviroment.
 
 ```env
