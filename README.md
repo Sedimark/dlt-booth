@@ -26,7 +26,7 @@ DLT Booth can be used to execute operation on a configured EVM through http requ
 3. [Useful tools for development and integration](#dev-utils)
 
 ## Environement setup
-In connector-rs/env folder, create a .env file starting from .env.example and update the values accordingly to your development enviroment.
+In dlt-booth/env folder, create a .env file starting from .env.example and update the values accordingly to your development enviroment.
 
 ```env
 RUST_LOG=debug # Log level [debug, info, error]
@@ -53,8 +53,8 @@ WALLET_MNEMONIC="grace eye hour away retire put crunch burger bracket coyote twi
 
 # DATABASE CONNECTION CONFIG
 DB_USER="postgres"
-DB_PASSWORD="connector"
-DB_NAME="connector"
+DB_PASSWORD="dlt_booth"
+DB_NAME="dlt_booth"
 DB_HOST=127.0.0.1 # "postgres" for deploying, "127.0.0.1 " for dev
 DB_PORT=5432
 DB_MAX_POOL_SIZE=16

@@ -2,4 +2,4 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-DELETE FROM connector.download_requests WHERE nonce = $1;
+SELECT $table_fields FROM dlt_booth.identities WHERE id = $1;

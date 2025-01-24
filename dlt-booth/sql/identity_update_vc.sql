@@ -2,6 +2,7 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-INSERT INTO connector.identities(eth_address, did, fragment)
-VALUES ($1, $2, $3)
+UPDATE dlt_booth.identities
+SET vcredential = $1 
+WHERE eth_address = $2
 RETURNING $table_fields;

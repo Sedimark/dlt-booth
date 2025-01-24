@@ -2,4 +2,4 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-SELECT $table_fields FROM connector.identities WHERE id = $1;
+SELECT $table_fields FROM dlt_booth.identities WHERE eth_address = $1;
