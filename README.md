@@ -47,12 +47,10 @@ ISSUER_URL=http://localhost:3213/api
 # KEY STORAGE CONFIG
 KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH="./key_storage.stronghold" # file path where secrets will be stored
 KEY_STORAGE_STRONGHOLD_PASSWORD="some_hopefully_secure_password" # password used for Stronghold file encryption
-KEY_STORAGE_MNEMONIC="grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat" # mnemonic seed for key storage generation
 
 ## WALLET CONFIG
 WALLET_STRONGHOLD_SNAPSHOT_PATH="./wallet.stronghold" # file path where wallet keys will be stored
 WALLET_STRONGHOLD_PASSWORD="some_hopefully_secure_password" # password used for Stronghold file encryption
-WALLET_MNEMONIC="grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat" # mnemonic seed for wallet generation
 
 # DATABASE CONNECTION CONFIG
 DB_USER="postgres"

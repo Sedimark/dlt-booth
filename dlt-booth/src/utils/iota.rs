@@ -13,7 +13,6 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 
-use crypto::keys::bip39::Mnemonic;
 use crypto::keys::bip44::Bip44;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::credential::Jws;
@@ -104,12 +103,14 @@ impl IotaState {
     .password(Password::from(key_storage_config.password.value()))
     .build(key_storage_config.file_path)?;
 
-    // Only required the first time, can also be generated with `manager.generate_mnemonic()?`
-    let mnemonic = Mnemonic::from(key_storage_config.mnemonic.value());
+    // Only used the first time, if there is a mnemonic stored within Stronghold it won't be used
+    let mnemonic = Client::generate_mnemonic()?;
+    // Clone the mnemonic to retain a copy for logging
+    let mnemonic_clone = mnemonic.clone();
 
     match stronghold.store_mnemonic(mnemonic).await {
-      Ok(()) => log::info!("Stronghold mnemonic stored"),
-      Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::info!("Stronghold mnemonic already stored"),
+      Ok(())=> log::info!("Stronghold mnemonic stored (Key storage):\n{}", mnemonic_clone.as_ref()),
+      Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::debug!("Stronghold mnemonic already stored (Key storage)"),
       Err(error) => panic!("Error: {:?}", error)
     }
 
@@ -132,9 +133,14 @@ impl IotaState {
     .password(wallet_config.password.value())
     .build(wallet_config.file_path)?;
 
-    match wallet_stronghold.store_mnemonic(Mnemonic::from(wallet_config.mnemonic.value())).await{
-      Ok(()) => log::info!("Stronghold mnemonic stored"),
-      Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::info!("Stronghold mnemonic already stored"),
+    // Only used the first time, if there is a mnemonic stored within Stronghold it won't be used
+    let wallet_mnemonic = Client::generate_mnemonic()?;
+    // Clone the mnemonic to retain a copy for logging
+    let wallet_mnemonic_clone = wallet_mnemonic.clone();
+
+    match wallet_stronghold.store_mnemonic(wallet_mnemonic).await{
+      Ok(()) => log::info!("Stronghold mnemonic stored (Wallet):\n{}", wallet_mnemonic_clone.as_ref()),
+      Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::debug!("Stronghold mnemonic already stored (Wallet)"),
       Err(error) => panic!("Error: {:?}", error)      
     }
 
@@ -423,12 +429,10 @@ mod tests {
   async fn evm_address_test(){
     let key_storage = KeyStorageConfig{ 
       file_path:"test_ks.stronghold".to_owned(), 
-      password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap(), 
-      mnemonic: ConfigSecret::from_str("grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat").unwrap()};
+      password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap()}; 
     let wallet_storage = WalletStorageConfig{ 
       file_path:"test_w.stronghold".to_owned(), 
-      password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap(), 
-      mnemonic: ConfigSecret::from_str("grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat").unwrap()};
+      password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap()};
     
     let dlt_config = DLTConfig{ rpc_provider: "https://json-rpc.evm.testnet.shimmer.network".to_owned(),
       chain_id: 1073,

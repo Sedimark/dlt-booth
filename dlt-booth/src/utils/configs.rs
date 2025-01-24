@@ -40,9 +40,6 @@ pub struct KeyStorageConfig {
     /// Secrets that unlocks the KeyStorage
     #[arg(id = "KEY_STORAGE_STRONGHOLD_PASSWORD", long, env, required = true)]
     pub password: ConfigSecret,
-    /// Mnemonic seed to be stored inside the KeyStorage
-    #[arg(id = "KEY_STORAGE_MNEMONIC", long, env, required = true)]
-    pub mnemonic: ConfigSecret,
 }
 
 /// Configuration parameters for the key storage
@@ -59,9 +56,6 @@ pub struct WalletStorageConfig {
     /// Secrets that unlocks the KeyStorage
     #[arg(id = "WALLET_STRONGHOLD_PASSWORD", long, env, required = true)]
     pub password: ConfigSecret,
-    /// Mnemonic seed to be stored inside the KeyStorage
-    #[arg(id = "WALLET_MNEMONIC", long, env, required = true)]
-    pub mnemonic: ConfigSecret,
 }
 
 /// Configuration parameters for the issuer database
