@@ -25,7 +25,7 @@ DLT Booth can be used to execute operation on a configured EVM through http requ
 2. [Running the application](#running-the-application)
 3. [Useful tools for development and integration](#dev-utils)
 
-## Environement setup
+## Environment setup
 In dlt-booth/env folder, create a .env file starting from .env.example and update the values accordingly to your development enviroment.
 
 ```env
