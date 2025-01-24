@@ -1,7 +1,7 @@
-connector-rs/postgresdata
-connector-rs/key_storage.stronghold
+dlt-booth/postgresdata
+dlt-booth/key_storage.stronghold
 
-connector-rs/src/contracts/servicebase.rs
+dlt-booth/src/contracts/servicebase.rs
 **/docker_data/
 api/
-connector-rs/target
+dlt-booth/target

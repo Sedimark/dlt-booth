@@ -2,7 +2,7 @@ openapi: '3.0.1'
 info:
   version: '0.1.2'
   title: 'DLT Booth API'
-  description: This document specifies the REST API for the Connector service.
+  description: This document specifies the REST API for the DLT Booth service.
 externalDocs:
   description: Github 
   url: https://github.com/Sedimark/dlt-booth

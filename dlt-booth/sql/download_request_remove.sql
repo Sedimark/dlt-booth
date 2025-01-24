@@ -2,6 +2,4 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-DELETE
-FROM connector.download_requests 
-WHERE expiration < $1;
+DELETE FROM dlt_booth.download_requests WHERE nonce = $1;

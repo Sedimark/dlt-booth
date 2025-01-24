@@ -2,4 +2,7 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-SELECT $table_fields FROM connector.assets WHERE id = $1;
+UPDATE dlt_booth.assets
+SET nft_address = $1
+WHERE alias = $2
+RETURNING $table_fields;

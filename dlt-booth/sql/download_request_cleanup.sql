@@ -2,4 +2,6 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
-SELECT $table_fields FROM connector.assets WHERE alias = $1;
+DELETE
+FROM dlt_booth.download_requests 
+WHERE expiration < $1;

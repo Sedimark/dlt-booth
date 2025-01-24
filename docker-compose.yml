@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: dlt-booth
-    container_name: dlt-boot
+    container_name: dlt-booth
     restart: unless-stopped
     ports:
       - "8085:8085"
@@ -17,9 +17,9 @@ services:
     volumes:
       - "./docker_data:/data"
     networks:
-      - connector-net
+      - dlt-booth-net
     env_file:
-      - ./connector-rs/env/.env
+      - ./dlt-booth/env/.env
       
   postgres:
     container_name: postgres
@@ -28,10 +28,10 @@ services:
     ports:
       - "5432:5432"
     env_file: 
-      - ./connector-rs/env/postgres.env
+      - ./dlt-booth/env/postgres.env
     volumes: 
-      - ./connector-rs/postgresdata:/var/lib/postgresql/data
-      - ./connector-rs/sql/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql 
+      - ./dlt-booth/postgresdata:/var/lib/postgresql/data
+      - ./dlt-booth/sql/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql 
     restart: always
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
@@ -40,12 +40,12 @@ services:
       retries: 5
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: connector
-      POSTGRES_DB: connector
+      POSTGRES_PASSWORD: dlt_booth
+      POSTGRES_DB: dlt_booth
     profiles:
       - dev
       - deploy
     networks:
-      - connector-net
+      - dlt-booth-net
 networks:
-  connector-net:
+  dlt-booth-net:

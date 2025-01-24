@@ -25,8 +25,8 @@ DLT Booth can be used to execute operation on a configured EVM through http requ
 2. [Running the application](#running-the-application)
 3. [Useful tools for development and integration](#dev-utils)
 
-## Environement setup
-In connector-rs/env folder, create a .env file starting from .env.example and update the values accordingly to your development enviroment.
+## Environment setup
+In dlt-booth/env folder, create a .env file starting from example.env and update the values accordingly to your development enviroment.
 
 ```env
 RUST_LOG=debug # Log level [debug, info, error]
@@ -41,6 +41,9 @@ FAUCET_API_ENDPOINT="https://faucet.testnet.shimmer.network/api/enqueue"
 RPC_PROVIDER="https://json-rpc.evm.testnet.shimmer.network"
 CHAIN_ID=1073
 
+# ISSUER CONFIG
+ISSUER_URL=http://localhost:3213/api
+
 # KEY STORAGE CONFIG
 KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH="./key_storage.stronghold" # file path where secrets will be stored
 KEY_STORAGE_STRONGHOLD_PASSWORD="some_hopefully_secure_password" # password used for Stronghold file encryption
@@ -53,8 +56,8 @@ WALLET_MNEMONIC="grace eye hour away retire put crunch burger bracket coyote twi
 
 # DATABASE CONNECTION CONFIG
 DB_USER="postgres"
-DB_PASSWORD="connector"
-DB_NAME="connector"
+DB_PASSWORD="dlt_booth"
+DB_NAME="dlt_booth"
 DB_HOST=127.0.0.1 # "postgres" for deploying, "127.0.0.1 " for dev
 DB_PORT=5432
 DB_MAX_POOL_SIZE=16
