@@ -26,7 +26,7 @@ DLT Booth can be used to execute operation on a configured EVM through http requ
 3. [Useful tools for development and integration](#dev-utils)
 
 ## Environment setup
-In dlt-booth/env folder, create a .env file starting from .env.example and update the values accordingly to your development enviroment.
+In dlt-booth/env folder, create a .env file starting from example.env and update the values accordingly to your development enviroment.
 
 ```env
 RUST_LOG=debug # Log level [debug, info, error]
@@ -40,6 +40,9 @@ NODE_URL="https://api.testnet.shimmer.network"
 FAUCET_API_ENDPOINT="https://faucet.testnet.shimmer.network/api/enqueue"
 RPC_PROVIDER="https://json-rpc.evm.testnet.shimmer.network"
 CHAIN_ID=1073
+
+# ISSUER CONFIG
+ISSUER_URL=http://localhost:3213/api
 
 # KEY STORAGE CONFIG
 KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH="./key_storage.stronghold" # file path where secrets will be stored
