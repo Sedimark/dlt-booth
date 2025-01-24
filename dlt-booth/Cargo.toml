@@ -51,7 +51,7 @@ zeroize = "1.8.1"
 alloy = {version = "0.6.4", features = ["sol-types", "json", "signers", "network", "consensus", "providers", "contract", "transports"] }
 
 [lib]
-name = "dlt-booth"
+name = "dlt_booth"
 path = "src/lib.rs"
 
 [[bin]]
