@@ -47,12 +47,10 @@ ISSUER_URL=http://localhost:3213/api
 # KEY STORAGE CONFIG
 KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH="./key_storage.stronghold" # file path where secrets will be stored
 KEY_STORAGE_STRONGHOLD_PASSWORD="some_hopefully_secure_password" # password used for Stronghold file encryption
-KEY_STORAGE_MNEMONIC="grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat" # mnemonic seed for key storage generation
 
 ## WALLET CONFIG
 WALLET_STRONGHOLD_SNAPSHOT_PATH="./wallet.stronghold" # file path where wallet keys will be stored
 WALLET_STRONGHOLD_PASSWORD="some_hopefully_secure_password" # password used for Stronghold file encryption
-WALLET_MNEMONIC="grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat" # mnemonic seed for wallet generation
 
 # DATABASE CONNECTION CONFIG
 DB_USER="postgres"
@@ -72,9 +70,20 @@ A Docker compose file has been set for deploying. A Postgres database and the ap
 ```bash
 docker compose --profile deploy up -d
 ```
+Remember to properly configure [environnment variables](#environment-setup)  before running the command.
 
-Remember to configure environnment variables properly before running the command.
+#### Backup and restore
+Generated keys are stored in files generated for key storage and wallet. They're both saved in `/data` inside the container. Those files are protected with the passwords provided in the [environnment variables](#environment-setup). The data folder needs to be syncronized with postgres data as well.
 
+##### Backup operation
+- Copy the container `/data` folder into a different storage
+- Store the passwords securely
+- Backup Postgres
+
+##### Restore operation
+- Copy back into the `/data` folder
+- Set corresponding passwords in the environnment variable
+- Restore Postgres backup
 
 ## Dev Utils
 - [OpenAPI spec](/api/dlt_booth.yaml)
