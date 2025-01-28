@@ -109,7 +109,7 @@ impl IotaState {
     let mnemonic_clone = mnemonic.clone();
 
     match stronghold.store_mnemonic(mnemonic).await {
-      Ok(())=> log::info!("Stronghold mnemonic stored (Key storage):\n{}", mnemonic_clone.as_ref()),
+      Ok(())=> log::info!("Stronghold mnemonic stored (Key storage)"),
       Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::debug!("Stronghold mnemonic already stored (Key storage)"),
       Err(error) => panic!("Error: {:?}", error)
     }
@@ -139,7 +139,7 @@ impl IotaState {
     let wallet_mnemonic_clone = wallet_mnemonic.clone();
 
     match wallet_stronghold.store_mnemonic(wallet_mnemonic).await{
-      Ok(()) => log::info!("Stronghold mnemonic stored (Wallet):\n{}", wallet_mnemonic_clone.as_ref()),
+      Ok(()) => log::info!("Stronghold mnemonic stored (Wallet)"),
       Err(iota_sdk::client::stronghold::Error::MnemonicAlreadyStored) => log::debug!("Stronghold mnemonic already stored (Wallet)"),
       Err(error) => panic!("Error: {:?}", error)      
     }
