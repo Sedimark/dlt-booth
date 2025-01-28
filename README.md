@@ -70,9 +70,20 @@ A Docker compose file has been set for deploying. A Postgres database and the ap
 ```bash
 docker compose --profile deploy up -d
 ```
+Remember to properly configure [environnment variables](#environment-setup)  before running the command.
 
-Remember to configure environnment variables properly before running the command.
+#### Backup and restore
+Generated keys are stored in files generated for key storage and wallet. They're both saved in `/data` inside the container. Those files are protected with the passwords provided in the [environnment variables](#environment-setup). The data folder needs to be syncronized with postgres data as well.
 
+##### Backup operation
+- Copy the container `/data` folder into a different storage
+- Store the passwords securely
+- Backup Postgres
+
+##### Restore operation
+- Copy back into the `/data` folder
+- Set corresponding passwords in the environnment variable
+- Restore Postgres backup
 
 ## Dev Utils
 - [OpenAPI spec](/api/dlt_booth.yaml)
