@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
 
-use crate::{dtos::CredentialData, errors::ConnectorError, models::{self, identity::{CredentialIssuedResponse, Identity}}};
+use crate::{dtos::Credential, errors::ConnectorError, models::{self, identity::{CredentialIssuedResponse, Identity}}};
 
 use super::iota::IotaState;
 
@@ -36,7 +36,7 @@ impl Issuer{
     }
 
     /// Attempt to register an identity to the issuer
-    pub async fn register(&self, identity: &models::identity::Identity, iota_state: &IotaState, credential_data: CredentialData) -> Result<Identity, ConnectorError>{
+    pub async fn register(&self, identity: &models::identity::Identity, iota_state: &IotaState, credential_data: Credential) -> Result<Identity, ConnectorError>{
         let mut challenge_url = self.base_url.clone();
         let client = &self.client;
 
@@ -82,14 +82,9 @@ impl Issuer{
     } 
 
     /// Request to issuer to revoke credential
-    pub async fn revoke_vc(&self, credential_id: &str) -> Result<(), ConnectorError>{
-        let mut issuer_url = self.base_url.clone();
-        let client = &self.client;
+    pub async fn revoke_vc(&self, credential_id: Url) -> Result<(), ConnectorError>{
 
-        //build path for revocation endopoint
-        issuer_url.set_path(format!("/api/credentials/{}", credential_id).as_str());
-
-        client.delete(issuer_url)
+        self.client.delete(credential_id)
         .send()
         .await?
         .error_for_status_ref()?;

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::ops::Deref;
+
 use actix_web::{delete, post};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
@@ -10,8 +12,6 @@ use identity_iota::core::Object;
 use identity_iota::credential::{FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils};
 use identity_iota::iota::{IotaDID, IotaIdentityClientExt};
 use serde_json::json;
-
-use crate::dtos::CredentialData;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
@@ -21,7 +21,7 @@ use crate::utils::issuer::Issuer;
 
 #[post("/identities")] 
 async fn create_identity(
-    req_body: web::Json<CredentialData>,
+    req_body: web::Json<crate::dtos::Identity>,
     db_pool: web::Data<Pool>,
     iota_state: web::Data<IotaState>,
     issuer_client: web::Data<Issuer>
@@ -35,7 +35,7 @@ async fn create_identity(
     let new_identity = match pg_client.get_identity_with_eth_addr(&eth_address).await{
         Err(ConnectorError::RowNotFound) => {
             // create a new DID document and publish on L1
-            let (doc, fragment) = iota_state.create_did(Some(eth_address.as_str())).await?;
+            let (doc, fragment) = iota_state.create_did(Some(eth_address.as_str()), req_body.services.clone()).await?;
 
             let new_identity = Identity {
                 id: None,
@@ -62,7 +62,7 @@ async fn create_identity(
 
     // create a new VC and register by the Issuer
     log::info!("Requesting a VC for {}", new_identity.did);
-    let created_identity = issuer_client.register(&new_identity, &iota_state, req_body.0).await?;
+    let created_identity = issuer_client.register(&new_identity, &iota_state, req_body.0.credential).await?;
     let updated_identity = pg_client.set_credential(&created_identity.eth_address, &created_identity.vcredential).await?;
     log::info!("Vc saved!");
     
@@ -83,7 +83,9 @@ async fn delete_identity(
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let eth_address = iota_state.get_evm_address().await?;
 
-    let credential = pg_client.get_identity_with_eth_addr(&eth_address).await?.vcredential;
+    let identity = pg_client.get_identity_with_eth_addr(&eth_address).await?;
+
+    let credential = identity.vcredential.to_owned();
 
     if let Some(credential) = credential{
         let jwt_vc = Jwt::from(credential);
@@ -97,12 +99,9 @@ async fn delete_identity(
 
         
         let id = decoded_credential.credential.id
-        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?
-        .into_string().strip_prefix("https://example.market/credentials/")
-        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?
-        .to_string();
+        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?;
 
-        issuer_client.revoke_vc(&id).await?;
+        issuer_client.revoke_vc(id.deref().clone()).await?;
 
         // if revocation is ok remove the jwt from the db
         pg_client.set_credential(&eth_address, &None).await?;
@@ -110,6 +109,13 @@ async fn delete_identity(
     else{
         return Ok(HttpResponse::NotFound().json(json!({"message": "Credential not found"})));
     }
+
+    // Credential deleted. Now delete it from DLT
+    let did = IotaDID::parse(identity.did.as_str())?;
+    iota_state.delete_did(&did).await?;
+
+    // Finally drop the DID from database
+    pg_client.delete_credential(&identity.did).await?;
 
     Ok(HttpResponse::Ok().finish())
 }

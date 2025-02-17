@@ -15,13 +15,20 @@ use anyhow::Result;
 
 use crypto::keys::bip44::Bip44;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
+use identity_iota::core::Object;
 use identity_iota::credential::Jws;
 use identity_iota::credential::Jwt;
 use identity_iota::credential::JwtPresentationOptions;
 use identity_iota::credential::Presentation;
 use identity_iota::credential::PresentationBuilder;
+use identity_iota::did::CoreDID;
+use identity_iota::did::DIDUrl;
+use identity_iota::did::RelativeDIDUrl;
 use identity_iota::did::DID;
 use identity_iota::document::verifiable::JwsVerificationOptions;
+
+use identity_iota::document::ServiceBuilder;
+use identity_iota::document::ServiceEndpoint;
 use identity_iota::iota::IotaDID;
 use identity_iota::iota::block::output::AliasOutput;
 use identity_iota::iota::IotaClientExt;
@@ -105,8 +112,6 @@ impl IotaState {
 
     // Only used the first time, if there is a mnemonic stored within Stronghold it won't be used
     let mnemonic = Client::generate_mnemonic()?;
-    // Clone the mnemonic to retain a copy for logging
-    let mnemonic_clone = mnemonic.clone();
 
     match stronghold.store_mnemonic(mnemonic).await {
       Ok(())=> log::info!("Stronghold mnemonic stored (Key storage)"),
@@ -135,8 +140,6 @@ impl IotaState {
 
     // Only used the first time, if there is a mnemonic stored within Stronghold it won't be used
     let wallet_mnemonic = Client::generate_mnemonic()?;
-    // Clone the mnemonic to retain a copy for logging
-    let wallet_mnemonic_clone = wallet_mnemonic.clone();
 
     match wallet_stronghold.store_mnemonic(wallet_mnemonic).await{
       Ok(()) => log::info!("Stronghold mnemonic stored (Wallet)"),
@@ -183,14 +186,16 @@ impl IotaState {
   pub async fn create_did(
     &self,
     eth_address: Option<impl ToString>,
+    services: Option<Vec<crate::dtos::Service>>
   ) -> Result<(IotaDocument, String), ConnectorError> {
         
-    let (document, fragment): (IotaDocument, String) = Self::create_did_document( &self, eth_address).await?;
+    let (document, fragment): (IotaDocument, String) = Self::create_did_document( &self, eth_address, services).await?;
     let client = self.wallet.client();
     let alias_output: AliasOutput = client.new_did_output(self.address.into_inner(), document, None).await?;
 
+    let secret_manager = self.wallet.get_secret_manager().clone().try_read_owned()?;
     let document: IotaDocument = client.publish_did_output(
-      self.stronghold_storage.as_secret_manager(),
+      &secret_manager,
       alias_output
     ).await?;
 
@@ -204,6 +209,7 @@ impl IotaState {
   async fn create_did_document(
     &self,
     eth_address: Option<impl ToString>,
+    services: Option<Vec<crate::dtos::Service>>
   ) -> Result<(IotaDocument, String), ConnectorError> {
     let network_name: NetworkName = self.wallet.client().network_name().await?;
     let mut document: IotaDocument = IotaDocument::new(&network_name);
@@ -217,6 +223,27 @@ impl IotaState {
       MethodScope::VerificationMethod,
     )
     .await?;
+
+    let did = CoreDID::from(document.id().clone());
+    // Add services to DID Document
+    if let Some(service_list) = services {
+      let service_builder = service_list.iter().filter_map(|service| {
+        let mut service_id = RelativeDIDUrl::new();
+        service_id.set_fragment(Some(service.id.as_str())).ok()?;
+        let service_id = DIDUrl::new(did.clone(), Some(service_id));
+
+        ServiceBuilder::new(Object::new())
+          .id(service_id)
+          .type_(service.service_type.clone())
+          .service_endpoint(ServiceEndpoint::One(service.service_endpoint.clone().into()))
+          .build().ok()
+      });
+
+      for service in service_builder{
+        document.insert_service(service)?;
+      }
+
+    }
     
     eth_address.map(|eth_address| -> Result<(), ConnectorError> {
       let mut properties = BTreeMap::new();
@@ -254,6 +281,17 @@ impl IotaState {
     }
   }
 
+  /// Removes did output from the DLT.
+  /// 
+  /// The did is dropped and the resolve operation will fail
+  pub async fn delete_did(&self, did: &IotaDID) -> Result<(), ConnectorError> {
+    let client = self.wallet.client();
+    let secret_manager = self.wallet.get_secret_manager().clone().try_read_owned()?;
+    
+    client.delete_did_output(&secret_manager, *self.address, did).await?;
+    
+    Ok(())
+  }
   /// Requests funds from the faucet for the given `address` if it has not enough funds.
   pub async fn ensure_address_has_funds(&self) -> anyhow::Result<()> {
 
@@ -420,7 +458,6 @@ impl IotaState {
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
-
     use crate::utils::configs::{ConfigSecret, DLTConfig, EvmAddressConfig, KeyStorageConfig, WalletStorageConfig};
 
     use super::IotaState;

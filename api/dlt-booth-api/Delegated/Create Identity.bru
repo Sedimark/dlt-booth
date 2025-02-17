@@ -12,7 +12,15 @@ post {
 
 body:json {
   {
-    "name": "",
-    "surname": ""
+    "credential": {
+      "alternateName": "someUsername"
+    },
+    "services":[
+      {
+        "id": "service-link",
+        "type": "ServiceType",
+        "serviceEndpoint":"http://example.com"
+      }
+    ]
   }
 }

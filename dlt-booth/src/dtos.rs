@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,9 +30,24 @@ pub struct CredentialRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CredentialData {
-    pub name: String,
-    pub surname: String
+pub struct Credential {
+    pub alternate_name: String
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Service {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub service_type: String,
+    pub service_endpoint: Url
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Identity {
+    pub credential: Credential,
+    pub services: Option<Vec<Service>>
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -49,3 +49,4 @@ services:
       - dlt-booth-net
 networks:
   dlt-booth-net:
+    name: dlt-booth-net
