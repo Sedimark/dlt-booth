@@ -92,6 +92,7 @@ async fn main() -> anyhow::Result<()>{
             //.configure(controllers::identities_controller::scoped_config)
             //.configure(controllers::challenges_controller::scoped_config)
             .configure(controllers::delegated_identities::scoped_config)
+            .configure(controllers::dids_controller::scoped_config)
         )
         .wrap(cors)
         .wrap(Logger::default())

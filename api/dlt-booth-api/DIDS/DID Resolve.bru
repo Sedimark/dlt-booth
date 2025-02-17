@@ -1,0 +1,15 @@
+meta {
+  name: DID Resolve
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{BASE_URL}}/dids/{{did}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  did: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324
+}
