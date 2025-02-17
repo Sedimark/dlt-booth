@@ -88,6 +88,81 @@ Generated keys are stored in files generated for key storage and wallet. They're
 ## Dev Utils
 - [OpenAPI spec](/api/dlt_booth.yaml)
 - [Bruno APIs](/api/dlt-booth-api)
+
+### Docker compose example
+```yaml
+services:
+  dlt-booth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dlt-booth
+    container_name: dlt-booth
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+       condition: service_healthy 
+    #enables data persistance of key storage and wallet. Remove it to disable data persistance
+    volumes:
+      - "./docker_data:/data"
+    networks:
+      - dlt-booth-net
+    environment:
+      RUST_BACKTRACE: 1
+      RUST_LOG: info
+      # HTTP SERVER CONFIG
+      HOST_ADDRESS: 0.0.0.0
+      HOST_PORT: 8085
+      # DLT CONFIG
+      NODE_URL: https://stardust.unican.sedimark.eu
+      FAUCET_API_ENDPOINT: https://faucet.tangle.stardust.linksfoundation.com/api/enqueue
+      RPC_PROVIDER: https://stardust.unican.sedimark.eu/sedimark-chain
+      EXPLORER_URL: ""
+      CHAIN_ID: 1074
+      # ISSUER CONFIG
+      ISSUER_URL: http://sedimark-issuer-rs:3213/api
+      # KEY STORAGE CONFIG
+      KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH: ./key_storage.stronghold
+      KEY_STORAGE_STRONGHOLD_PASSWORD: some_hopefully_secure_password
+      # WALLET CONFIG
+      WALLET_STRONGHOLD_SNAPSHOT_PATH: ./wallet.stronghold
+      WALLET_STRONGHOLD_PASSWORD: some_hopefully_secure_password
+      # DATABASE CONNECTION CONFIG
+      DB_USER: postgres
+      DB_PASSWORD: dlt_booth
+      DB_NAME: dlt_booth
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_MAX_POOL_SIZE: 16
+  postgres:
+    container_name: postgres
+    hostname: postgres
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    env_file: 
+      - ./dlt-booth/env/postgres.env
+    volumes: 
+      - ./dlt-booth/postgresdata:/var/lib/postgresql/data
+      - ./dlt-booth/sql/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql 
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dlt_booth
+      POSTGRES_DB: dlt_booth
+    networks:
+      - dlt-booth-net
+networks:
+  dlt-booth-net:
+    name: dlt-booth-net
+```
 ## License
 
 [GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html)
