@@ -11,6 +11,7 @@ servers:
 tags:
 - name: Delegated
   description: Identity operations managed directly by the DLT Booth.
+- name: DIDs
 - name: Other
 paths:
 
@@ -71,6 +72,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /dids/{did}:
+    parameters:
+      - in: path
+        name: did
+        required: true
+        type: string
+    get:
+      summary: Resolve a DID on the configured public utility
+      description: Given a DID as an input, it queries the configured node as a client to retrieve the current state of the DID Document
+      responses:
+        200:
+          description: Resolved
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidDocument'
+        500:
+          description: Unexpected error
+################################################################
+#                                                              #
+#                          Identites                           #
+#                                                              #
+################################################################
 
 ################################################################
 #                                                              #
@@ -87,6 +111,33 @@ components:
           description: The verifiable credential of the user in JWT format (Upon identity creation, its value is undefined, the credential must be requested to an Issuer).
           type: string
           example: "eyJraWQiOiJkaWQ6aW90YTpybXM6MHhhMTM2Yjk1YTFmMzc0ZWQwN2M1NDkzOTQ0ZmMwYWYyZjM5NmU3YzExNTAzNDhhZmJhZGVlYmI5ZmVkNjExYzMxI3BjT0lUbnUxSTBqSm9HM3JJNnFaZGtrVTVLaDUwNnctYnExc2t5QjBXOTAiLCJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.eyJleHAiOjE3NDI4OTMyNDUsImlzcyI6ImRpZDppb3RhOnJtczoweGExMzZiOTVhMWYzNzRlZDA3YzU0OTM5NDRmYzBhZjJmMzk2ZTdjMTE1MDM0OGFmYmFkZWViYjlmZWQ2MTFjMzEiLCJuYmYiOjE3MTEyNzA4NDUsImp0aSI6Imh0dHBzOi8vZXhhbXBsZS5tYXJrZXQvY3JlZGVudGlhbHMvMSIsInN1YiI6ImRpZDppb3RhOnJtczoweGIwYTVjNTM5NTNhMjhhZDJmMzg4MGIwOTg3ODI2NWU5OGRiMGJkM2Y5NmQxNjZiMjMzZWM4NGNkYWRiYjI0MmIiLCJ2YyI6eyJAY29udGV4dCI6Imh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIk1hcmtldHBsYWNlQ3JlZGVudGlhbCJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJuYW1lIjoiSm9obiIsInN1cm5hbWUiOiJEb2UgRG9lIiwidXNlck9mIjoiU0VESU1BUksgbWFya2V0cGxhY2UifX19.-6dTIWJUwmaOQq6IJz4hh3SEwBz2lKnUmY19av4nZY3wcTi7hp0TY2rn3G8vsMYIft4VFZCwSlAHi28GwpiBAQ"
+    DidDocument:
+      type: object
+      example: '{
+  "doc": {
+    "id": "did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324",
+    "verificationMethod": [
+      {
+        "id": "did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324#m0K_TnUAenJRKuJ_WU8prsHavPcsACNdRRxk3vPl8Mg",
+        "controller": "did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324",
+        "type": "JsonWebKey2020",
+        "publicKeyJwk": {
+          "kty": "OKP",
+          "alg": "EdDSA",
+          "kid": "m0K_TnUAenJRKuJ_WU8prsHavPcsACNdRRxk3vPl8Mg",
+          "crv": "Ed25519",
+          "x": "Fl_ytZJjvo6mDXhydn-ah-RLcyWXX1mVJRKKGlJ21Ds"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "created": "2025-02-17T10:37:29Z",
+    "updated": "2025-02-17T10:37:29Z",
+    "governorAddress": "lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98",
+    "stateControllerAddress": "lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98"
+  }
+}'
     Credential:
       type: object
       properties:
