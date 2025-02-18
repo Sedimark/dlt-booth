@@ -211,59 +211,59 @@ impl IotaState {
     eth_address: Option<impl ToString>,
     services: Option<Vec<crate::dtos::Service>>
   ) -> Result<(IotaDocument, String), ConnectorError> {
-    let network_name: NetworkName = self.wallet.client().network_name().await?;
-    let mut document: IotaDocument = IotaDocument::new(&network_name);
+  let network_name: NetworkName = self.wallet.client().network_name().await?;
+  let mut document: IotaDocument = IotaDocument::new(&network_name);
 
-    let fragment: String = document
-    .generate_method(
-      &self.key_storage,
-      JwkMemStore::ED25519_KEY_TYPE,
-      JwsAlgorithm::EdDSA,
-      None,
-      MethodScope::VerificationMethod,
-    )
-    .await?;
+  let fragment: String = document
+  .generate_method(
+    &self.key_storage,
+    JwkMemStore::ED25519_KEY_TYPE,
+    JwsAlgorithm::EdDSA,
+    None,
+    MethodScope::VerificationMethod,
+  )
+  .await?;
 
-    let did = CoreDID::from(document.id().clone());
-    // Add services to DID Document
-    if let Some(service_list) = services {
-      let service_builder = service_list.iter().filter_map(|service| {
-        let mut service_id = RelativeDIDUrl::new();
-        service_id.set_fragment(Some(service.id.as_str())).ok()?;
-        let service_id = DIDUrl::new(did.clone(), Some(service_id));
+  let did = CoreDID::from(document.id().clone());
+  // Add services to DID Document
+  if let Some(service_list) = services {
+    let service_builder = service_list.iter().filter_map(|service| {
+      let mut service_id = RelativeDIDUrl::new();
+      service_id.set_fragment(Some(service.id.as_str())).ok()?;
+      let service_id = DIDUrl::new(did.clone(), Some(service_id));
 
-        ServiceBuilder::new(Object::new())
-          .id(service_id)
-          .type_(service.service_type.clone())
-          .service_endpoint(ServiceEndpoint::One(service.service_endpoint.clone().into()))
-          .build().ok()
-      });
-
-      for service in service_builder{
-        document.insert_service(service)?;
-      }
-
-    }
-    
-    eth_address.map(|eth_address| -> Result<(), ConnectorError> {
-      let mut properties = BTreeMap::new();
-      properties.insert("blockchainAccountId".to_string(), json!(format!("eip155:1:{}", eth_address.to_string())));
-
-      let id = document.id().to_url().join("#ethAddress")?;
-
-      log::info!("id: {}", id.to_string());
-      // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
-      let method = MethodBuilder::new(properties)
-        .id( id )
-        .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
-        .controller(document.core_document().id().to_owned())
-        .data(MethodData::PublicKeyMultibase("".into()))
-        .build().unwrap();
-      document.insert_method(method, MethodScope::VerificationMethod)?;
-      Ok(())
+      ServiceBuilder::new(Object::new())
+        .id(service_id)
+        .type_(service.service_type.clone())
+        .service_endpoint(ServiceEndpoint::One(service.service_endpoint.clone().into()))
+        .build().ok()
     });
-    
-    Ok((document, fragment))
+
+    for service in service_builder{
+      document.insert_service(service)?;
+    }
+
+  }
+  
+  eth_address.map(|eth_address| -> Result<(), ConnectorError> {
+    let mut properties = BTreeMap::new();
+    properties.insert("blockchainAccountId".to_string(), json!(format!("eip155:1:{}", eth_address.to_string())));
+
+    let id = document.id().to_url().join("#ethAddress")?;
+
+    log::info!("id: {}", id.to_string());
+    // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
+    let method = MethodBuilder::new(properties)
+      .id( id )
+      .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
+      .controller(document.core_document().id().to_owned())
+      .data(MethodData::PublicKeyMultibase("".into()))
+      .build().unwrap();
+    document.insert_method(method, MethodScope::VerificationMethod)?;
+    Ok(())
+  });
+  
+  Ok((document, fragment))
   }
 
   pub async fn resolve_did(
