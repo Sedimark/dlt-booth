@@ -80,15 +80,4 @@ impl Issuer{
         identity_with_cred.vcredential = Some(credential.credential_jwt.as_str().to_owned());
         Ok(identity_with_cred)
     } 
-
-    /// Request to issuer to revoke credential
-    pub async fn revoke_vc(&self, credential_id: Url) -> Result<(), ConnectorError>{
-
-        self.client.delete(credential_id)
-        .send()
-        .await?
-        .error_for_status_ref()?;
-    
-        Ok(())
-    }
 }

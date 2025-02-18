@@ -77,7 +77,6 @@ async fn create_identity(
 async fn delete_identity(
     db_pool: web::Data<Pool>,
     iota_state: web::Data<IotaState>,
-    issuer_client: web::Data<Issuer>
 )-> Result<HttpResponse, ConnectorError>{
     log::debug!("controller delete_identity");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
@@ -85,37 +84,12 @@ async fn delete_identity(
 
     let identity = pg_client.get_identity_with_eth_addr(&eth_address).await?;
 
-    let credential = identity.vcredential.to_owned();
-
-    if let Some(credential) = credential{
-        let jwt_vc = Jwt::from(credential);
-        let issuer_did = JwtCredentialValidatorUtils::extract_issuer_from_jwt::<IotaDID>(&jwt_vc)?;
-        let issuer_document = iota_state.wallet.client().resolve_did(&issuer_did).await?;
-        let credential_validator = JwtCredentialValidator::with_signature_verifier(EdDSAJwsVerifier::default());
-
-        let decoded_credential = credential_validator
-        .validate::<_, Object>(&jwt_vc, &issuer_document, &JwtCredentialValidationOptions::default(), FailFast::FirstError)
-        .map_err(|err| ConnectorError::OtherError(format!("Error: {}", err.to_string())))?;
-
-        
-        let id = decoded_credential.credential.id
-        .ok_or(ConnectorError::OtherError("Credential Id missing".to_owned()))?;
-
-        issuer_client.revoke_vc(id.deref().clone()).await?;
-
-        // if revocation is ok remove the jwt from the db
-        pg_client.set_credential(&eth_address, &None).await?;
-    }
-    else{
-        return Ok(HttpResponse::NotFound().json(json!({"message": "Credential not found"})));
-    }
-
     // Credential deleted. Now delete it from DLT
     let did = IotaDID::parse(identity.did.as_str())?;
     iota_state.delete_did(&did).await?;
 
     // Finally drop the DID from database
-    pg_client.delete_credential(&identity.did).await?;
+    pg_client.delete_identity(&identity.did).await?;
 
     Ok(HttpResponse::Ok().finish())
 }
