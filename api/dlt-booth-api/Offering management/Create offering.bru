@@ -1,0 +1,23 @@
+meta {
+  name: Create offering
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/offerings
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "NewOffering",
+    "symbol": "NFT",
+    "descriptionUri": "http://example.com",
+    "descriptionHash": "aaaaaaaaaaaaaaaaaaaaaaaa",
+    "dtName": "TWELVE",
+    "dtSymbol": "AGREE",
+    "maxSupply": 12
+  }
+}

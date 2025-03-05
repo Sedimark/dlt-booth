@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()>{
     log::info!("Initializing custom provider");
     let provider: ScProvider = ProviderBuilder::new()
         .with_recommended_fillers()
-        .on_http(Url::from_str(&rpc_provider)?);
+        .on_http(rpc_provider.clone());
     
     let provider_data = web::Data::new(provider);
 
@@ -93,6 +93,7 @@ async fn main() -> anyhow::Result<()>{
             //.configure(controllers::challenges_controller::scoped_config)
             .configure(controllers::delegated_identities::scoped_config)
             .configure(controllers::dids_controller::scoped_config)
+            .configure(controllers::offering_controller::scoped_config)
         )
         .wrap(cors)
         .wrap(Logger::default())

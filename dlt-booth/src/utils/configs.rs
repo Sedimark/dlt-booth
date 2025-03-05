@@ -2,10 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::str::FromStr;
+
+use alloy::primitives::Address;
 use crypto::keys::bip44::Bip44;
 use iota_sdk::client::constants::SHIMMER_COIN_TYPE;
+use url::Url;
 use zeroize::ZeroizeOnDrop;
 use clap::Args;
+
+use crate::errors::ConnectorError;
 
 /// Simple configuration of a generic secret read from Args.
 /// Must be deleted when it is not needed anymore
@@ -98,7 +104,7 @@ pub struct HttpServerConfig {
 pub struct DLTConfig {
     /// JSON RPC provider url
     #[arg(long, env, required = true)]
-    pub rpc_provider: String,
+    pub rpc_provider: Url,
 
     /// Chain id
     #[arg(long, env, required = true)]
@@ -118,7 +124,11 @@ pub struct DLTConfig {
     
     /// Issuer Endpoint
     #[arg(long, env, required = true)]   
-    pub issuer_url: String
+    pub issuer_url: String,
+
+    /// Factory SC address
+    #[arg(long, env, required = true)]   
+    pub factory_sc_address: String
 }
 
 /// Configuration for Bip44 address generation
