@@ -5,7 +5,11 @@ meta {
 }
 
 get {
-  url: {{BASE_URL}}/offering/{{nftAddress}}
+  url: {{BASE_URL}}/offerings/{{nftAddress}}
   body: none
   auth: none
+}
+
+vars:pre-request {
+  nftAddress: 
 }
