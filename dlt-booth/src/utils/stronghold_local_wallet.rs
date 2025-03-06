@@ -73,39 +73,3 @@ where
         }
     }
 }
-
-/*#[cfg(test)]
-mod tests{
-    use alloy::{hex::ToHexExt, signers::Signer};
-    use crypto::keys::{bip39::Mnemonic, bip44::Bip44};
-    use iota_sdk::client::secret::SecretManager;
-
-    use crate::utils::alloy_signer::{IotaSigner};
-
-
-    #[tokio::test]
-    async fn eip191_format(){
-      let message = b"\x19Ethereum Signed Message:\n5nonce";
-      assert_eq!("nonce".as_bytes().to_eip_191_format(), message)
-    }
-
-    #[tokio::test]
-    async fn sign_evm_test(){
-      let secret_manager = SecretManager::try_from_mnemonic(
-        Mnemonic::from("grace eye hour away retire put crunch burger bracket coyote twist cherry glare collect retreat")
-        ).unwrap();
-      
-      //let iota = crate::utils::iota::IotaState::init(key_storage, wallet_storage, dlt_config, evm_config).await.unwrap();
-      let address = Bip44::new(60).with_account(0).with_address_index(0);
-      let signer = IotaSigner::new(&secret_manager, Some(1773), address).await.unwrap();
-
-      let signature =signer.sign_message(b"nonce")
-        .await;
-
-      assert!(signature.is_ok(), "Signature error: {:?}", signature.err().unwrap().to_string());
-
-      let signature = signature.unwrap().as_bytes().encode_hex_with_prefix();
-  
-      assert_eq!(signature, "0x2ef9407839892b05046a9ee7e3e37632c6ff644d198bd64a20371be08d051c680ad25bfecb4ca783835ce3ba087633a5816382ff131085b5ea34b8c03a25f0c41b")
-    }
-}*/

@@ -4,7 +4,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use alloy::{network::{AnyNetwork, NetworkWallet}, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
 use serde::Deserialize;
 use serde_json::json;
-use crate::{contracts::{Factory::{self, PublishData}, ScProvider}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
+use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -82,8 +82,45 @@ async fn get_offerings(
   Ok(HttpResponse::Ok().json(json!({"addresses": result})))
 }
 
+#[get("/offerings/{nft_address}")]
+async fn get_offering(
+  path: web::Path<String>,
+  sc_provider: web::Data<ScProvider>
+) -> Result<impl Responder, ConnectorError>{
+
+  let nft_address = Address::from_str(&path)?;
+
+  let servicebase = ServiceBase::new(nft_address, sc_provider.into_inner());
+  let owner = servicebase.getServiceOwner()
+    .call().await
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
+    .owner
+    .to_string();
+  let nft_name = servicebase.name()
+    .call().await
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
+    ._0;
+  let description_uri = servicebase.tokenURI(U256::from(1))
+    .call().await
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
+    ._0;
+
+  let description_hash = servicebase.getDescriptionHash()
+    .call().await
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
+    ._0;
+  
+  Ok(HttpResponse::Ok().json(json!({
+    "owner": owner,
+    "name": nft_name,
+    "descriptionUri": description_uri,
+    "description_hash": description_hash
+  })))
+}
+
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
       .service(publish_offering)
-      .service(get_offerings);
+      .service(get_offerings)
+      .service(get_offering);
 }

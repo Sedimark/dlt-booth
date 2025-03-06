@@ -128,7 +128,8 @@ pub struct DLTConfig {
 
     /// Factory SC address
     #[arg(long, env, required = true)]   
-    pub factory_sc_address: String
+    pub factory_sc_address: String,
+
 }
 
 /// Configuration for Bip44 address generation
