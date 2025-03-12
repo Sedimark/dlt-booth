@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${DLT_BOOTH_APP_NAME}
+  name: ${DLT_BOOTH_APP_NAME}
+  namespace: ${DLT_BOOTH_NAMESPACE}
+spec:
+  type: ClusterIP
+  ports:
+    - name: "api"
+      port: 8085
+      targetPort: 8085
+  selector:
+    app: ${DLT_BOOTH_APP_NAME}
+---
+

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${DLT_BOOTH_APP_NAME}-postgres
+  name: ${DLT_BOOTH_APP_NAME}-postgres
+  namespace: ${DLT_BOOTH_NAMESPACE}
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: ${DLT_BOOTH_APP_NAME}-postgres
+---
+
