@@ -111,10 +111,6 @@ pub struct DLTConfig {
     /// Faucet API endpoint
     #[arg(long, env, required = true)]
     pub faucet_api_endpoint: String,
-
-    /// Explorer Url
-    #[arg(long, env, required = true)]   
-    pub explorer_url: String,    
     
     /// Issuer Endpoint
     #[arg(long, env, required = true)]   

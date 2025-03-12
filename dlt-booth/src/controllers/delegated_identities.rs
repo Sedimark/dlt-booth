@@ -2,15 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::ops::Deref;
-
 use actix_web::{delete, post};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
-use identity_eddsa_verifier::EdDSAJwsVerifier;
-use identity_iota::core::Object;
-use identity_iota::credential::{FailFast, Jwt, JwtCredentialValidationOptions, JwtCredentialValidator, JwtCredentialValidatorUtils};
-use identity_iota::iota::{IotaDID, IotaIdentityClientExt};
+use identity_iota::iota::IotaDID;
 use serde_json::json;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;

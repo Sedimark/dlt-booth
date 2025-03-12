@@ -271,7 +271,6 @@ impl IotaState {
     did: &str
   ) -> Result<IotaDocument, ConnectorError> {
     log::info!("Resolving did...");
-    log::info!("{}/identity-resolver/{}", self.dlt_config.explorer_url, did);
     match self.wallet.client().resolve_did(&IotaDID::try_from(did)?).await {
         Ok(iota_document) => Ok(iota_document),
         Err(err) => {
@@ -475,7 +474,6 @@ mod tests {
       chain_id: 1073,
       node_url: "https://api.testnet.shimmer.network".to_owned(),
       faucet_api_endpoint: "https://faucet.testnet.shimmer.network/api/enqueue".to_owned(),
-      explorer_url: "".to_owned(),
       issuer_url: "http://localhost:3213".to_owned()
     };
 
