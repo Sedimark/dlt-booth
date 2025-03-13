@@ -23,6 +23,7 @@ data:
 
   # DATABASE CONNECTION CONFIG
   DB_NAME: "dlt_booth"
+  DB_USER: ${DLT_BOOTH_DB_USER}
   DB_HOST: ${DLT_BOOTH_APP_NAME}-postgres.${DLT_BOOTH_NAMESPACE}.svc.cluster.local # "postgres" for deploying, "127.0.0.1 " for dev
   DB_PORT: "5432"
   DB_MAX_POOL_SIZE: "16"
