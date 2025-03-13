@@ -44,10 +44,18 @@ spec:
           volumeMounts:
             - name: ${DLT_BOOTH_APP_NAME}-postgres-data
               mountPath: "/var/lib/postgresql"
+            - name: ${DLT_BOOTH_APP_NAME}-postgres-init
+              mountPath: /docker-entrypoint-initdb.d
       restartPolicy: Always
       volumes:
         - name: ${DLT_BOOTH_APP_NAME}-postgres-data
           persistentVolumeClaim:
             claimName: ${DLT_BOOTH_APP_NAME}-postgres-data
+        - name: ${DLT_BOOTH_APP_NAME}-postgres-init
+          configMap:
+            name: ${DLT_BOOTH_APP_NAME}-postgres-init
+            items:
+              - key: dbinit.sql
+                path: dbinit.sql
 ---
 
