@@ -173,9 +173,9 @@ To deploy the DLT Booth in a Kubernetes cluster, first set the necessary environ
 | DLT_BOOTH_NAMESPACE                       | Kubernetes namespace for the DLT Booth        | dlt-booth                                                                                  | No     |
 | DLT_BOOTH_APP_NAME                        | Application name used for Kubernetes resources| dlt-booth                                                                                  | No     |
 | STORAGECLASS                              | Kubernetes storage class for persistent volumes| nfs-storageclass                                                                          | No     |
-| DLT_BOOTH_NODE_URL                        | URL for the blockchain node                   | https://stardust.unican.sedimark.eu                                                        | No     |
-| DLT_BOOTH_FAUCET_API_ENDPOINT             | API endpoint for the blockchain faucet        | https://faucet.tangle.stardust.linksfoundation.com/api/enqueue                             | No     |
-| DLT_BOOTH_RPC_PROVIDER                    | RPC provider URL for blockchain               | https://stardust.unican.sedimark.eu/sedimark-chain                                         | No     |
+| DLT_BOOTH_NODE_URL                        | URL for the blockchain node                   | https://stardust.linksfoundation.com/node1                                                 | No     |
+| DLT_BOOTH_FAUCET_API_ENDPOINT             | API endpoint for the blockchain faucet        | https://stardust.linksfoundation.com/faucet/l1/api/enqueue                                 | No     |
+| DLT_BOOTH_RPC_PROVIDER                    | RPC provider URL for blockchain               | https://json-rpc.evm.stardust.linksfoundation.com/sedimark-chain                           | No     |
 | DLT_BOOTH_CHAIN_ID                        | Blockchain network ID                         | 1074                                                                                       | No     |
 | DLT_BOOTH_ISSUER_URL                      | URL of the issuer                             | http://issuer.dlt-booth.svc.cluster.local:3213                                             | No     |
 | DLT_BOOTH_DB_USER                         | Database username                             | postgres                                                                                   | No     |
