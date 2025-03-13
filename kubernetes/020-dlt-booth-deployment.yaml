@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ${DLT_BOOTH_APP_NAME}
+  name: ${DLT_BOOTH_APP_NAME}
+  namespace: ${DLT_BOOTH_NAMESPACE}
+spec:
+  selector:
+    matchLabels:
+      app: ${DLT_BOOTH_APP_NAME}
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: ${DLT_BOOTH_APP_NAME}
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      nodeSelector: {}
+      initContainers:
+      - name: check-db-ready
+        image: postgres:${DLT_BOOTH_POSTGRES_IMAGETAG}
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            until pg_isready -h ${DLT_BOOTH_APP_NAME}-postgres.${DLT_BOOTH_NAMESPACE}.svc.cluster.local -U ${DLT_BOOTH_DB_USER} -d dlt_booth -p 5432; do
+              echo "Waiting for PostgreSQL to be ready..."
+              sleep 5
+            done
+        envFrom:
+          - configMapRef:
+              name: ${DLT_BOOTH_APP_NAME}-postgres-config
+          - secretRef:
+              name: ${DLT_BOOTH_APP_NAME}-postgres-secret
+      containers:
+        - image: ${DLT_BOOTH_DOCKER_IMAGE}:${DLT_BOOTH_IMAGETAG}
+          imagePullPolicy: Always
+          name: ${DLT_BOOTH_APP_NAME}
+          envFrom:
+          - configMapRef:
+              name: ${DLT_BOOTH_APP_NAME}-config
+          - secretRef:
+              name: ${DLT_BOOTH_APP_NAME}-secret
+          ports:
+            - containerPort: 8085
+              name: api
+          resources: {}
+          volumeMounts:
+            - name: ${DLT_BOOTH_APP_NAME}-data
+              mountPath: "/data"
+            - name: ${DLT_BOOTH_APP_NAME}-postgres-init
+              mountPath: /docker-entrypoint-initdb.d
+      restartPolicy: Always
+      volumes:
+        - name: ${DLT_BOOTH_APP_NAME}-data
+          persistentVolumeClaim:
+            claimName: ${DLT_BOOTH_APP_NAME}-data
+        - name: ${DLT_BOOTH_APP_NAME}-postgres-init
+          configMap:
+            name: ${DLT_BOOTH_APP_NAME}-postgres-init
+            items:
+              - key: dbinit.sql
+                path: dbinit.sql
+---
+

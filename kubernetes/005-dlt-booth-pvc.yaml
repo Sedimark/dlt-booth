@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${DLT_BOOTH_APP_NAME}-data
+  namespace: ${DLT_BOOTH_NAMESPACE}
+spec:
+  storageClassName: ${STORAGECLASS}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+

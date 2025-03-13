@@ -162,6 +162,44 @@ networks:
   dlt-booth-net:
     name: dlt-booth-net
 ```
+
+### Kubernetes deployment 
+
+To deploy the DLT Booth in a Kubernetes cluster, first set the necessary environment variables to be parsed in the manifests:
+
+| Name                                   | Description                                   | Example (in clear text)                                                                      | base64 |
+|----------------------------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------|--------|
+| DLT_BOOTH_NAMESPACE                       | Kubernetes namespace for the DLT Booth        | dlt-booth                                                                                  | No     |
+| DLT_BOOTH_APP_NAME                        | Application name used for Kubernetes resources| dlt-booth                                                                                  | No     |
+| STORAGECLASS                              | Kubernetes storage class for persistent volumes| nfs-storageclass                                                                          | No     |
+| DLT_BOOTH_NODE_URL                        | URL for the blockchain node                   | https://stardust.linksfoundation.com/node1                                                 | No     |
+| DLT_BOOTH_FAUCET_API_ENDPOINT             | API endpoint for the blockchain faucet        | https://stardust.linksfoundation.com/faucet/l1/api/enqueue                                 | No     |
+| DLT_BOOTH_RPC_PROVIDER                    | RPC provider URL for blockchain               | https://json-rpc.evm.stardust.linksfoundation.com/sedimark-chain                           | No     |
+| DLT_BOOTH_CHAIN_ID                        | Blockchain network ID                         | 1074                                                                                       | No     |
+| DLT_BOOTH_ISSUER_URL                      | URL of the issuer                             | http://issuer.dlt-booth.svc.cluster.local:3213                                             | No     |
+| DLT_BOOTH_DB_USER                         | Database username                             | postgres                                                                                   | No     |
+| DLT_BOOTH_DB_PASSWORD                     | Database password                             | password                                                                                   | Yes    |
+| DLT_BOOTH_DOCKER_REGISTRY_CREDENTIALS     | Base64 encoded Docker registry credentials    | {"auths":{"registry.example.com":{"username":"user","password":"pass"}}}                   | Yes    |
+| DLT_BOOTH_KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH | Path to the Stronghold snapshot file     | ./key_storage.stronghold                                                                   | Yes    |
+| DLT_BOOTH_KEY_STORAGE_STRONGHOLD_PASSWORD | Password for the Stronghold snapshot          | some_hopefully_secure_password                                                             | Yes    |
+| DLT_BOOTH_WALLET_STRONGHOLD_SNAPSHOT_PATH | File path where wallet keys will be stored    | ./wallet.stronghold                                                                        | Yes    |
+| DLT_BOOTH_WALLET_STRONGHOLD_PASSWORD      | Password used for Stronghold file encryption  | some_hopefully_secure_password                                                             | Yes    |
+| DLT_BOOTH_DOCKER_IMAGE                    | Docker image name                             | registry.example.com/dlt-booth                                                             | No     |
+| DLT_BOOTH_IMAGETAG                        | Docker image tag for the DLT Booth            | dev                                                                                        | No     |
+| DLT_BOOTH_POSTGRES_IMAGETAG               | Docker image tag for PostgreSQL               | 17.4                                                                                       | No     |
+
+Then, apply the Kubernetes manifests:
+
+```bash 
+cat ./kubernetes/*.yaml | envsubst | kubectl apply -f -
+```
+
+The manifests don't provide any ingress, so to access the DLT Booth API, you can use port-forwarding:
+
+```bash 
+kubectl port-forward -n $DLT_BOOTH_NAMESPACE svc/$DLT_BOOTH_APP_NAME 8085:8085
+```
+
 ## License
 
 [GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html)
