@@ -119,7 +119,6 @@ services:
       NODE_URL: https://stardust.unican.sedimark.eu
       FAUCET_API_ENDPOINT: https://faucet.tangle.stardust.linksfoundation.com/api/enqueue
       RPC_PROVIDER: https://stardust.unican.sedimark.eu/sedimark-chain
-      EXPLORER_URL: ""
       CHAIN_ID: 1074
       # ISSUER CONFIG
       ISSUER_URL: http://sedimark-issuer-rs:3213/api
