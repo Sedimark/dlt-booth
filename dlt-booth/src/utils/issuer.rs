@@ -4,6 +4,8 @@
 
 use std::str::FromStr;
 use alloy::hex::ToHexExt;
+use identity_eddsa_verifier::EdDSAJwsVerifier;
+use identity_iota::{core::Object, credential::{JwtCredentialValidationOptions, JwtCredentialValidator}, document::verifiable::JwsVerificationOptions, iota::IotaDocument};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
@@ -76,6 +78,10 @@ impl Issuer{
             .json()
             .await?;
 
+        let issuer_document = iota_state.resolve_did(&credential.issuer_did).await?;
+        JwtCredentialValidator::with_signature_verifier(EdDSAJwsVerifier::default())
+            .verify_signature::<IotaDocument, Object>(&credential.credential_jwt, &[issuer_document], &JwsVerificationOptions::default())?;
+        
         let mut identity_with_cred = identity.clone();
         identity_with_cred.vcredential = Some(credential.credential_jwt.as_str().to_owned());
         Ok(identity_with_cred)

@@ -62,8 +62,9 @@ async fn create_identity(
     let updated_identity = pg_client.set_credential(&created_identity.eth_address, &created_identity.vcredential).await?;
     log::info!("Vc saved!");
     
-    match updated_identity.vcredential {
-        Some(vc) => Ok(HttpResponse::Ok().json(json!({"credential": vc}))),
+    match updated_identity.vcredential
+    .and_then(|jwt| decode_vc_unverified(&jwt)) {
+        Some(decoded) => Ok(HttpResponse::Ok().json(decoded)),
         None => Ok(HttpResponse::InternalServerError().json(json!({"message": "Unexpected error when reading VC"})))
     }
 
