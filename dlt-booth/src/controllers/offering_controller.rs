@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::{AnyNetwork, NetworkWallet}, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
+use alloy::{network::{AnyNetwork, Ethereum, NetworkWallet}, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
 use serde::Deserialize;
 use serde_json::json;
 use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
@@ -47,19 +47,29 @@ async fn publish_offering(
     let signer = iota_state.get_evm_signer(&secret_manager).await?;
     let signer = StrongholdWallet::new(signer);
     let provider = ProviderBuilder::new()
-    .with_recommended_fillers()
+    .network::<Ethereum>()
     .wallet(signer)
     .on_http(iota_state.dlt_config.rpc_provider.clone());
 
     let factory = Factory::new(factory_address, provider);
     log::error!("Default {:?}", factory.provider().default_signer_address());
 
-    let nft_address = factory.tokenizeService(offering.into_inner().try_into()?)
-        .gas_price(10_000_000_000)
+    // compute nft address
+    let call_builder = factory.tokenizeService(offering.into_inner().try_into()?)
+      .gas_price(10_000_000_000);
+
+    let nft_address = call_builder
         .call()
         .await
         .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
     let nft_address = nft_address.erc721token.to_string();
+
+    // execute transaction and wait for confirmation
+    call_builder.send().await
+      .map_err(|e| ConnectorError::OtherError(e.to_string()))?
+      .watch()
+      .await
+      .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
     Ok(HttpResponse::Created().json(json!({"nft_address": nft_address})))
 }
 

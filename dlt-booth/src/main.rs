@@ -69,7 +69,6 @@ async fn main() -> anyhow::Result<()>{
 
     log::info!("Initializing custom provider");
     let provider: ScProvider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .on_http(rpc_provider.clone());
     
     let provider_data = web::Data::new(provider);
