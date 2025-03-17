@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::{delete, post};
+use actix_web::{delete, get, post};
 use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
 use identity_iota::iota::IotaDID;
@@ -12,6 +12,7 @@ use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
 use crate::utils::iota::IotaState;
 use crate::utils::issuer::Issuer;
+use crate::utils::jwt::decode_vc_unverified;
 
 
 #[post("/identities")] 
@@ -61,11 +62,35 @@ async fn create_identity(
     let updated_identity = pg_client.set_credential(&created_identity.eth_address, &created_identity.vcredential).await?;
     log::info!("Vc saved!");
     
-    match updated_identity.vcredential {
-        Some(vc) => Ok(HttpResponse::Ok().json(json!({"credential": vc}))),
+    match updated_identity.vcredential
+    .and_then(|jwt| decode_vc_unverified(&jwt)) {
+        Some(decoded) => Ok(HttpResponse::Ok().json(decoded)),
         None => Ok(HttpResponse::InternalServerError().json(json!({"message": "Unexpected error when reading VC"})))
     }
 
+}
+
+#[get("/identities")]
+async fn get_identity(
+    db_pool: web::Data<Pool>,
+    iota_state: web::Data<IotaState>,
+)-> Result<HttpResponse, ConnectorError> {
+    log::debug!("controller get_identity");
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let eth_address = iota_state.get_evm_address().await?;
+
+    match pg_client.get_identity_with_eth_addr(&eth_address).await
+    .and_then(|res| res.vcredential
+    .ok_or(ConnectorError::RowNotFound)) {
+        Ok(jwt) => {
+            // decode Verifiable credential
+            decode_vc_unverified(&jwt)
+            .ok_or(ConnectorError::OtherError("Bad VC Format".to_owned()))
+            .map(|vc| HttpResponse::Ok().json(vc))
+        },
+        Err(ConnectorError::RowNotFound) => Ok(HttpResponse::NotFound().json(json!({"message": "No VC found"}))),
+        Err(e) => Err(e)
+    }
 }
 
 #[delete("/identities")]
@@ -94,8 +119,8 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     .service(web::scope("/delegated")
         .service(create_identity)
         .service(delete_identity)
+        .service(get_identity)
     );
-    //.service(get_identity)     
     //.service(patch_identity)       
     //.service(sign_data)
     //.service(gen_presentation);

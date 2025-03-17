@@ -1,0 +1,26 @@
+meta {
+  name: Get Identity
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/delegated/identities
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "credential": {
+      "alternateName": "someUsername"
+    },
+    "services":[
+      {
+        "id": "service-link",
+        "type": "ServiceType",
+        "serviceEndpoint":"http://example.com"
+      }
+    ]
+  }
+}
