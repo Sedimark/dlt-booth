@@ -117,7 +117,7 @@ services:
       HOST_PORT: 8085
       # DLT CONFIG
       NODE_URL: https://stardust.unican.sedimark.eu
-      FAUCET_API_ENDPOINT: https://faucet.tangle.stardust.linksfoundation.com/api/enqueue
+      FAUCET_API_ENDPOINT: https://stardust.linksfoundation.com/faucet/l1/api/enqueue
       RPC_PROVIDER: https://stardust.unican.sedimark.eu/sedimark-chain
       CHAIN_ID: 1074
       # ISSUER CONFIG
