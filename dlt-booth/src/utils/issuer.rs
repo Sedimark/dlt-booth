@@ -5,7 +5,7 @@
 use std::str::FromStr;
 use alloy::hex::ToHexExt;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
-use identity_iota::{core::Object, credential::{JwtCredentialValidationOptions, JwtCredentialValidator}, document::verifiable::JwsVerificationOptions, iota::IotaDocument};
+use identity_iota::{core::Object, credential::JwtCredentialValidator, document::verifiable::JwsVerificationOptions, iota::IotaDocument};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
