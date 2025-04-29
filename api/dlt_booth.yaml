@@ -1,18 +1,25 @@
 openapi: '3.0.1'
 info:
-  version: '0.1.2'
+  version: '1.0.0'
   title: 'DLT Booth API'
   description: This document specifies the REST API for the DLT Booth service.
 externalDocs:
   description: Github 
   url: https://github.com/Sedimark/dlt-booth
 servers:
-- url: http://localhost:1234
+- url: http://localhost:1234/api
 tags:
 - name: Delegated
-  description: Identity operations managed directly by the DLT Booth.
-- name: DIDs
-- name: Other
+  description: Operations performed using directly DLT-Booth identity
+- name: Utils
+  description: Utility operations on DLT and SC Platform
+- name: Identity management
+  description: Identity management operations
+- name: Offering tokenization
+  description: Offering tokenization operations
+- name: Asset exchange
+  description: Asset exchange operations
+
 paths:
 
 ################################################################
@@ -27,6 +34,7 @@ paths:
       description: In detail, it creates a new Did embedding in the document an identity public key and an ethereum address securely stored in the booth. Finally reaches the Issuer in order to receive a Verifiable Credential that contains the claims provided in the request body. 
       tags:
       - Delegated
+      - Identity management
       requestBody:
         required: true
         content:
@@ -55,6 +63,7 @@ paths:
     delete:
       tags:
         - Delegated
+        - Identity management
       summary: Delete user identity
       description: In detail, the Booth requests to the issuer to revoke the Verifiable Credential. Finally, the identity stored in the Booth is deleted.
       responses:
@@ -75,6 +84,7 @@ paths:
     get:
       tags:
         - Delegated
+        - Identity management
       summary: Get identity
       responses:
         200:
@@ -96,6 +106,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       description: If the booth is registered, it returns the JWT payload enveloping a Verifiable Credential
+  /delegated/identities/vp:
+    get:
+      summary: Create VP
+      description: Generate a Verifiable Presentation for DLT-Booth Identity.
+      tags:
+      - Delegated
+      - Identity management
+      - Asset exchange
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                nonce:
+                  type: string
+              example:
+                nonce: "c7400b29-38f4-4915-8026-03ab1b83fe54"
+      responses:
+        200:
+          description: VP Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Jwt'
+        404:
+          description: Identity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500: 
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'             
   /dids/{did}:
     parameters:
       - in: path
@@ -106,6 +152,9 @@ paths:
     get:
       summary: Resolve a DID on the configured verifiable data registry
       description: Given a DID as an input, it queries the configured node as a client to retrieve the current state of the DID Document
+      tags:
+      - Utils
+      - Identity management
       responses:
         200:
           description: Resolved
@@ -126,6 +175,7 @@ paths:
       description: Generate a new offering on the configured Factory SC using the identity of the DLT-Booth
       tags:
         - Delegated
+        - Offering tokenization
       requestBody:
         required: true
         content:
@@ -157,6 +207,7 @@ paths:
       description: Reads from the Factory SC and returns the list of addresses of minted NFTs
       tags:
         - Delegated
+        - Offering tokenization
       responses:
         200:
           description: "List found: the list of available addresses is returned"
@@ -177,16 +228,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
                   
-  /offering/{address}:
+  /offering/{nftAddress}:
     parameters:
     - in: path
-      name: address
+      name: nftAddress
       required: true
       schema:
         type: string
     get:
       summary: Get NFT's offering details, given the NFT address
       description: Returns the details that a specific offering SC can return
+      tags:
+        - Utils
+        - Offering tokenization
+        - Asset exchange
       responses:
         200:
           description: Details of the NFT with the provided address
@@ -198,8 +253,11 @@ paths:
                     properties: 
                       owner: 
                         type: string
+                      dtAddress:
+                        type: string
                     example:
                       owner: '0x1a5FdBc891c5D4E6aD68064Ae45D43146D4F9f3a'
+                      dtAddress: '0x1a5FdBc891c5D4E6aD68064Ae45D43146D4F9f3a'
                   - $ref: '#/components/schemas/Offering'
         500:
           description: Internal Error
@@ -207,6 +265,89 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+################################################################
+#                                                              #
+#                          Assets                              #
+#                                                              #
+################################################################
+  /delegated/dt/{dtAddress}:
+    parameters:
+    - in: path
+      name: dtAddress
+      required: true
+      schema:
+        type: string
+    post:
+      summary: Buy an access token
+      description: Buy an access token using DLT-Booth's identity
+      tags:
+        - Delegated
+        - Asset exchange
+      responses:
+        200:
+          description: Purchase successful
+          content:
+            application/json:
+              schema:
+                properties:
+                  balance:
+                    type: integer
+                example:
+                  balance: 1
+        404: 
+          description: Address not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        422:
+          description: Contract reverted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'    
+    get:
+      summary: Get token balance
+      description: Read the balance of a certain token for DLT-Booth's account
+      tags:
+        - Delegated
+        - Asset exchange
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  balance:
+                    type: integer
+                example:
+                  balance: 1
+        404: 
+          description: Address not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        422:
+          description: Contract reverted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'     
 ################################################################
 #                                                              #
 #                          COMPONENTS                          #
@@ -215,6 +356,13 @@ paths:
 
 components:
   schemas:
+    Jwt:
+      type: object
+      properties:
+        jwt: 
+          type: string
+      example:
+        jwt: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30'   
     CredentialJwt:
       type: object
       example: 
@@ -232,8 +380,7 @@ components:
            - MarketplaceCredential
          credentialSubject:
            schema:alternateName: someUsername
-           schema:memberOf: SEDIMARK marketplace
-                   
+           schema:memberOf: SEDIMARK marketplace                  
     Credential:
       type: object
       properties:
@@ -280,8 +427,7 @@ components:
             created: '2025-02-17T10:37:29Z'
             updated: '2025-02-17T10:37:29Z'
             governorAddress: lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98
-            stateControllerAddress: lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98
-    
+            stateControllerAddress: lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98    
     Offering:
       type: object
       properties:
@@ -294,8 +440,7 @@ components:
       example:
         name: OfferingName
         descriptionUri: http://example.com
-        descriptionHash: b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2
-        
+        descriptionHash: b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2       
     OfferingConfig:
       type: object
       properties:
