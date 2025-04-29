@@ -107,7 +107,7 @@ paths:
                 $ref: '#/components/schemas/Error'
       description: If the booth is registered, it returns the JWT payload enveloping a Verifiable Credential
   /delegated/identities/vp:
-    get:
+    post:
       summary: Create VP
       description: Generate a Verifiable Presentation for DLT-Booth Identity.
       tags:
