@@ -241,7 +241,6 @@ paths:
       tags:
         - Utils
         - Offering tokenization
-        - Asset exchange
       responses:
         200:
           description: Details of the NFT with the provided address
@@ -253,11 +252,8 @@ paths:
                     properties: 
                       owner: 
                         type: string
-                      dtAddress:
-                        type: string
                     example:
                       owner: '0x1a5FdBc891c5D4E6aD68064Ae45D43146D4F9f3a'
-                      dtAddress: '0x1a5FdBc891c5D4E6aD68064Ae45D43146D4F9f3a'
                   - $ref: '#/components/schemas/Offering'
         500:
           description: Internal Error
@@ -265,16 +261,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
 ################################################################
 #                                                              #
 #                          Assets                              #
 #                                                              #
 ################################################################
-  /delegated/dt/{dtAddress}:
+  /delegated/dt/{nftAddress}:
     parameters:
     - in: path
-      name: dtAddress
+      name: nftAddress
       required: true
       schema:
         type: string
@@ -315,7 +310,7 @@ paths:
                 $ref: '#/components/schemas/Error'    
     get:
       summary: Get token balance
-      description: Read the balance of a certain token for DLT-Booth's account
+      description: Get the number of access token associated to DLT-Booth Identity
       tags:
         - Delegated
         - Asset exchange
