@@ -48,7 +48,7 @@ actix-web-lab = "0.20.1"
 clap = { version = "4.4.2", features = ["derive", "env"] }
 url = "2.5.2"
 zeroize = "1.8.1"
-alloy = {version = "0.6.4", features = ["sol-types", "json", "signers", "network", "consensus", "providers", "contract", "transports"] }
+alloy = {version = "0.12.0", features = ["sol-types", "json", "signers", "network", "consensus", "providers", "contract", "transports"] }
 
 [lib]
 name = "dlt_booth"

@@ -1,0 +1,15 @@
+meta {
+  name: Get offering
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/offerings/{{nftAddress}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  nftAddress: 0xDeCCec0dFd11161474CCb4D3bC5FD5268Eb1abF4
+}

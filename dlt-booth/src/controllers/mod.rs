@@ -6,3 +6,4 @@ pub mod identities_controller;
 pub mod challenges_controller;
 pub mod delegated_identities;
 pub mod dids_controller;
+pub mod offering_controller;

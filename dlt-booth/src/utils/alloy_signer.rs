@@ -47,8 +47,7 @@ impl<'a> IotaSigner<'a>{
             .trim_start_matches("0x")
             .to_owned();
 
-
-        let address = Address::from_str(&address)?;
+        let address: Address = Address::from_str(&address)?;
 
         Ok(Self {secret_manager, chain_id, address_chain, address })
     }

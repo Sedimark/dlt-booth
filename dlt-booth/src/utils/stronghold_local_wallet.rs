@@ -2,14 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use alloy::{consensus::{SignableTransaction, TxEnvelope, TypedTransaction}, network::{Network, NetworkWallet, TxSigner}, primitives::{Address, PrimitiveSignature}};
+use alloy::{consensus::{SignableTransaction, TxEnvelope, TypedTransaction}, network::{AnyNetwork, Network, NetworkWallet, TxSigner}, primitives::{Address, PrimitiveSignature}};
 use super::alloy_signer::IotaSigner;
 
 #[derive(Debug, Clone)]
 pub struct StrongholdWallet<'a>(IotaSigner<'a>);
 
 impl<'a> StrongholdWallet<'a>{
-    pub fn new(signer: IotaSigner<'a>) -> Self{
+    pub fn new(signer: IotaSigner<'a>) -> Self
+    {
         Self(signer)
     }
 
