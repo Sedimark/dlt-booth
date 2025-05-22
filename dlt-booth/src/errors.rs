@@ -92,9 +92,8 @@ impl ResponseError for ConnectorError {
 
     fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .insert_header(ContentType::html())
             .json(json!({
-                "error": self.to_string()
+                "message": self.to_string()
             }))
     }
 
