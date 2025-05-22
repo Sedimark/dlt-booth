@@ -70,7 +70,7 @@ async fn publish_offering(
       .watch()
       .await
       .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
-    Ok(HttpResponse::Created().json(json!({"nft_address": nft_address})))
+    Ok(HttpResponse::Created().json(json!({"nftAddress": nft_address})))
 }
 
 #[get("/offerings")]
@@ -130,7 +130,8 @@ async fn get_offering(
 
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
+    .service(web::scope("/delegated")
       .service(publish_offering)
-      .service(get_offerings)
-      .service(get_offering);
+      .service(get_offerings))
+    .service(get_offering);
 }
