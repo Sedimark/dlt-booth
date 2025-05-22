@@ -2,16 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::str::FromStr;
 
-use alloy::primitives::Address;
 use crypto::keys::bip44::Bip44;
 use iota_sdk::client::constants::SHIMMER_COIN_TYPE;
 use url::Url;
 use zeroize::ZeroizeOnDrop;
 use clap::Args;
 
-use crate::errors::ConnectorError;
 
 /// Simple configuration of a generic secret read from Args.
 /// Must be deleted when it is not needed anymore

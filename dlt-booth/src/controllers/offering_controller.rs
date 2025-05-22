@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::{AnyNetwork, Ethereum, NetworkWallet}, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
+use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
 use serde::Deserialize;
 use serde_json::json;
 use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};

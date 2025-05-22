@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use alloy::{consensus::{SignableTransaction, TxEnvelope, TypedTransaction}, network::{AnyNetwork, Network, NetworkWallet, TxSigner}, primitives::{Address, PrimitiveSignature}};
+use alloy::{consensus::{SignableTransaction, TxEnvelope, TypedTransaction}, network::{Network, NetworkWallet, TxSigner}, primitives::{Address, PrimitiveSignature}};
 use super::alloy_signer::IotaSigner;
 
 #[derive(Debug, Clone)]
