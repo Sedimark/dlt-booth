@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
+use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::PoolError;
 use reqwest::StatusCode;
 use serde_json::json;
@@ -84,7 +84,7 @@ pub enum ConnectorError {
     ResourceError(#[from] TryLockError),
     #[error("Cannot convert from hex")]
     ConversionError(#[from] alloy::hex::FromHexError),
-    #[error("Bad request")]
+    #[error(transparent)]
     ReqwestError(#[from] reqwest::Error)
 }   
 

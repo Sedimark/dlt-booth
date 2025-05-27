@@ -7,6 +7,7 @@ use actix_web::{web, HttpResponse};
 use deadpool_postgres::Pool;
 use identity_iota::iota::IotaDID;
 use serde_json::json;
+use url::Url;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
@@ -97,12 +98,47 @@ async fn get_identity(
 async fn delete_identity(
     db_pool: web::Data<Pool>,
     iota_state: web::Data<IotaState>,
+    issuer_client: web::Data<Issuer>
 )-> Result<HttpResponse, ConnectorError>{
     log::debug!("controller delete_identity");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
     let eth_address = iota_state.get_evm_address().await?;
 
-    let identity = pg_client.get_identity_with_eth_addr(&eth_address).await?;
+    // Find dlt-booth's identity
+    let identity = &pg_client.get_identity_with_eth_addr(&eth_address).await?;
+    let vc_jwt = match &identity.vcredential {
+        Some(vc) => vc,
+        None => return Err(ConnectorError::CredentialMissing)
+    };
+    let decoded_vc = decode_vc_unverified(&vc_jwt);
+
+    let decoded_obj = match decoded_vc {
+        Some(vc) => vc.as_object().cloned(),
+        None => return Err(ConnectorError::CredentialMissing)
+    };
+
+    // Ask a challenge to the issuer
+    let challenge = issuer_client.get_challenge(&identity)
+        .await?;
+
+    // Create a VP for the issuer
+    let vp_jwt = iota_state
+        .gen_presentation(identity, challenge, None)
+        .await?;
+
+    // Read the credential endpoint from the VC JWT
+    let credential_id = decoded_obj
+        .inspect(|d| log::debug!("Decoded credential {:?}",d))
+        .and_then(|decoded| decoded.get("jti").cloned())
+        .inspect(|d| log::debug!("credential id {:?}",d))
+        .ok_or(ConnectorError::OtherError("Cannot parse the credential id".to_owned()))?
+        .as_str()
+        .and_then(|credential_id| Url::try_from(credential_id).ok())
+        .ok_or(ConnectorError::OtherError("Cannot parse the credential id".to_owned()))?;
+
+    // Revoke the credential from the issuer
+    issuer_client.revoke(&vp_jwt, credential_id)
+        .await?;
 
     // Credential deleted. Now delete it from DLT
     let did = IotaDID::parse(identity.did.as_str())?;

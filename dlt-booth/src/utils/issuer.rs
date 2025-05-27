@@ -5,7 +5,7 @@
 use std::str::FromStr;
 use alloy::hex::ToHexExt;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
-use identity_iota::{core::Object, credential::JwtCredentialValidator, document::verifiable::JwsVerificationOptions, iota::IotaDocument};
+use identity_iota::{core::Object, credential::{Jwt, JwtCredentialValidator}, document::verifiable::JwsVerificationOptions, iota::IotaDocument};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
@@ -86,4 +86,38 @@ impl Issuer{
         identity_with_cred.vcredential = Some(credential.credential_jwt.as_str().to_owned());
         Ok(identity_with_cred)
     } 
+
+    /// Request a nonce to the issuer.
+    pub async fn get_challenge(&self, identity: &models::identity::Identity) -> Result<String, ConnectorError>{
+        let mut challenge_url = self.base_url.clone();
+        let client = &self.client;
+
+        challenge_url.set_path("/api/challenges");
+        let did = format!("did={}", identity.did);
+        challenge_url.set_query(Some(did.as_str()));
+
+        let challenge: Challenge = client.get(challenge_url)
+            .send()
+            .await?
+            .json::<Challenge>()
+            .await?;
+
+        Ok(challenge.nonce)
+    }
+
+    /// Request credential revocation to the issuer
+    pub async fn revoke(&self, presentation: &Jwt, credential_id: Url) -> Result<(), ConnectorError>{
+        let client = &self.client;
+
+        client
+            .delete(credential_id)
+            .header("authorization", presentation.as_str())
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
+
+        Ok(())
+    }
+
 }

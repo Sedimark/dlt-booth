@@ -385,14 +385,14 @@ impl IotaState {
 
   pub async fn gen_presentation(
     &self,
-    identity: Identity,
+    identity: &Identity,
     challenge: String,
     wallet_signature_claim: Option<BTreeMap<String, Value>>
   ) -> Result<Jwt, ConnectorError> {
     log::info!("Resolving did...");
     let document = self.resolve_did(identity.did.as_str()).await?;
 
-    let credential_jwt = Jwt::new(identity.vcredential.ok_or(ConnectorError::CredentialMissing)?);
+    let credential_jwt = Jwt::new(identity.vcredential.clone().ok_or(ConnectorError::CredentialMissing)?);
 
     log::info!("gen_presentation");
     // Create an unsigned Presentation from the previously issued Verifiable Credential.

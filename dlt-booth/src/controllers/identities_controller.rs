@@ -138,7 +138,7 @@ async fn gen_presentation(
         }
         None => None,
     };
-    let presentetion_jwt = iota_state.gen_presentation(identity, req_body.challenge.clone(), wallet_signature_claim).await?;
+    let presentetion_jwt = iota_state.gen_presentation(&identity, req_body.challenge.clone(), wallet_signature_claim).await?;
 
     Ok(HttpResponse::Ok().json(json!({"presentation": presentetion_jwt.as_str()})))
 }
