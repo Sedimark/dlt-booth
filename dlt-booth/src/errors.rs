@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::{HttpResponse, ResponseError, http::header::ContentType};
+use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::PoolError;
 use reqwest::StatusCode;
 use serde_json::json;
@@ -84,7 +84,7 @@ pub enum ConnectorError {
     ResourceError(#[from] TryLockError),
     #[error("Cannot convert from hex")]
     ConversionError(#[from] alloy::hex::FromHexError),
-    #[error("Bad request")]
+    #[error(transparent)]
     ReqwestError(#[from] reqwest::Error)
 }   
 
@@ -92,9 +92,8 @@ impl ResponseError for ConnectorError {
 
     fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .insert_header(ContentType::html())
             .json(json!({
-                "error": self.to_string()
+                "message": self.to_string()
             }))
     }
 

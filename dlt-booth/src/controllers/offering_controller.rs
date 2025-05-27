@@ -1,7 +1,10 @@
+// SPDX-FileCopyrightText: 2024 Fondazione LINKS
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::{AnyNetwork, Ethereum, NetworkWallet}, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
+use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
 use serde::Deserialize;
 use serde_json::json;
 use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
@@ -70,7 +73,7 @@ async fn publish_offering(
       .watch()
       .await
       .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
-    Ok(HttpResponse::Created().json(json!({"nft_address": nft_address})))
+    Ok(HttpResponse::Created().json(json!({"nftAddress": nft_address})))
 }
 
 #[get("/offerings")]
@@ -130,7 +133,8 @@ async fn get_offering(
 
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
+    .service(web::scope("/delegated")
       .service(publish_offering)
-      .service(get_offerings)
-      .service(get_offering);
+      .service(get_offerings))
+    .service(get_offering);
 }

@@ -1,6 +1,6 @@
 openapi: '3.0.1'
 info:
-  version: '1.0.0'
+  version: '1.0.1'
   title: 'DLT Booth API'
   description: This document specifies the REST API for the DLT Booth service.
 externalDocs:
@@ -379,9 +379,7 @@ components:
     Credential:
       type: object
       properties:
-        name:
-          type: string
-        surname:
+        alternateName:
           type: string
     Service:
       type: object
