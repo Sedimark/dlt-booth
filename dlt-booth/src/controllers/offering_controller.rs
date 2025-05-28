@@ -52,10 +52,9 @@ async fn publish_offering(
     let provider = ProviderBuilder::new()
     .network::<Ethereum>()
     .wallet(signer)
-    .on_http(iota_state.dlt_config.rpc_provider.clone());
+    .connect_http(iota_state.dlt_config.rpc_provider.clone());
 
     let factory = Factory::new(factory_address, provider);
-    log::error!("Default {:?}", factory.provider().default_signer_address());
 
     // compute nft address
     let call_builder = factory.tokenizeService(offering.into_inner().try_into()?)
@@ -65,7 +64,7 @@ async fn publish_offering(
         .call()
         .await
         .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
-    let nft_address = nft_address.erc721token.to_string();
+    let nft_address = nft_address.to_string();
 
     // execute transaction and wait for confirmation
     call_builder.send().await
@@ -89,7 +88,6 @@ async fn get_offerings(
     .call()
     .await
     .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0
     .iter().map(|addr| addr.to_string())
     .collect::<Vec<String>>();
   Ok(HttpResponse::Ok().json(json!({"addresses": result})))
@@ -107,21 +105,17 @@ async fn get_offering(
   let owner = servicebase.getServiceOwner()
     .call().await
     .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    .owner
     .to_string();
   let nft_name = servicebase.name()
     .call().await
-    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0;
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
   let description_uri = servicebase.tokenURI(U256::from(1))
     .call().await
-    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0;
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
 
   let description_hash = servicebase.getDescriptionHash()
     .call().await
-    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0;
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
   
   Ok(HttpResponse::Ok().json(json!({
     "owner": owner,

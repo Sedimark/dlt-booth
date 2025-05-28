@@ -4,7 +4,7 @@
 
 use std::str::FromStr;
 
-use alloy::{consensus::SignableTransaction, network::TxSigner, primitives::{Address, ChainId, PrimitiveSignature, SignatureError, B256}, signers::{Error, Signer, UnsupportedSignerOperation}};
+use alloy::{consensus::SignableTransaction, network::TxSigner, primitives::{Address, ChainId, SignatureError, B256}, signers::{Error, Signature, Signer, UnsupportedSignerOperation}};
 use async_trait::async_trait;
 use alloy::signers::Result;
 use crypto::keys::bip44::Bip44;
@@ -70,17 +70,17 @@ impl<'a> IotaSigner<'a>{
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Signer for IotaSigner<'_> {
-    async fn sign_hash(&self, _hash: &B256) -> Result<PrimitiveSignature> {
+    async fn sign_hash(&self, _hash: &B256) -> Result<Signature> {
         Err(Error::UnsupportedOperation(UnsupportedSignerOperation::SignHash))
     }
 
     #[inline]
-    async fn sign_message(&self, message: &[u8]) -> Result<PrimitiveSignature> {
+    async fn sign_message(&self, message: &[u8]) -> Result<Signature> {
         let eip191_bytes = message.to_eip_191_format();
         let signature = self.sign_evm_data(eip191_bytes)
             .await
             .map_err(|_| {alloy::signers::Error::SignatureError(alloy::primitives::SignatureError::FromBytes(""))})?;
-        let primitive = PrimitiveSignature::try_from(signature.as_slice())?;
+        let primitive = Signature::try_from(signature.as_slice())?;
         Ok(primitive)
     }
 
@@ -122,7 +122,7 @@ impl Signer for IotaSigner<'_> {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl TxSigner<PrimitiveSignature> for IotaSigner<'_>{
+impl TxSigner<Signature> for IotaSigner<'_>{
     /// Get the address of the signer.
     fn address(&self) -> Address{
         self.address
@@ -132,12 +132,12 @@ impl TxSigner<PrimitiveSignature> for IotaSigner<'_>{
     #[doc(alias = "sign_tx")]
     async fn sign_transaction(
         &self,
-        tx: &mut dyn SignableTransaction<PrimitiveSignature>,
-    ) -> alloy::signers::Result<PrimitiveSignature>{
+        tx: &mut dyn SignableTransaction<Signature>,
+    ) -> alloy::signers::Result<Signature>{
         let rlp = tx.encoded_for_signing();
         let signature = self.sign_evm_data(rlp).await
             .map_err(|_| {Error::Other("stronghold cannot perform the signature".into())})?;
-        PrimitiveSignature::try_from(signature.as_slice())
+        Signature::try_from(signature.as_slice())
             .map_err(|_| {Error::SignatureError(SignatureError::FromBytes("cannot convert from stronghold signature"))})
     }
 }

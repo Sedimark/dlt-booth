@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use alloy::{consensus::{SignableTransaction, TxEnvelope, TypedTransaction}, network::{Network, NetworkWallet, TxSigner}, primitives::{Address, PrimitiveSignature}};
+use alloy::{consensus::{SignableTransaction, TxEnvelope, TypedTransaction}, network::{Network, NetworkWallet, TxSigner}, primitives::{Address, Signature}};
 use super::alloy_signer::IotaSigner;
 
 #[derive(Debug, Clone)]
@@ -17,8 +17,8 @@ impl<'a> StrongholdWallet<'a>{
     #[doc(alias = "sign_tx_inner")]
     async fn sign_transaction_inner(
         &self,
-        tx: &mut dyn SignableTransaction<PrimitiveSignature>,
-    ) -> alloy::signers::Result<PrimitiveSignature> {
+        tx: &mut dyn SignableTransaction<Signature>,
+    ) -> alloy::signers::Result<Signature> {
         self.0
             .sign_transaction(tx)
             .await
