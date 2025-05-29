@@ -4,7 +4,7 @@
 use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
+use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::ProviderBuilder};
 use serde::Deserialize;
 use serde_json::json;
 use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
@@ -40,7 +40,7 @@ impl TryFrom<OfferingData> for PublishData{
   }
 }
 
-#[post("/offerings")]
+#[post("/delegated/offerings")]
 async fn publish_offering(
     iota_state: web::Data<IotaState>,
     offering: web::Json<OfferingData>
@@ -127,8 +127,7 @@ async fn get_offering(
 
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
-    .service(web::scope("/delegated")
-      .service(publish_offering)
-      .service(get_offerings))
+    .service(publish_offering)
+    .service(get_offerings)
     .service(get_offering);
 }

@@ -123,6 +123,8 @@ pub struct DLTConfig {
     #[arg(long, env, required = true)]   
     pub factory_sc_address: String,
 
+    #[arg(long, env, required = true)]   
+    pub fixed_rate_exchange_sc_address: String
 }
 
 /// Configuration for Bip44 address generation

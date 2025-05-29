@@ -6,7 +6,7 @@
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use alloy::providers::ProviderBuilder;
-use dlt_booth::{contracts::ScProvider, controllers, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}};
+use dlt_booth::{contracts::ScProvider, controllers::{self}, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}};
 use clap::Parser;
 
 /// DLT Booth command line arguments
@@ -88,9 +88,10 @@ async fn main() -> anyhow::Result<()>{
         .service(web::scope("/api")
             //.configure(controllers::identities_controller::scoped_config)
             //.configure(controllers::challenges_controller::scoped_config)
+            .configure(controllers::asset_exchange::scoped_config)
+            .configure(controllers::offering_controller::scoped_config)
             .configure(controllers::delegated_identities::scoped_config)
             .configure(controllers::dids_controller::scoped_config)
-            .configure(controllers::offering_controller::scoped_config)
         )
         .wrap(cors)
         .wrap(Logger::default())
