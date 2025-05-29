@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::{post, web, HttpResponse, Responder};
-use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, FixedBytes}, providers::ProviderBuilder, sol_types::{SolEvent, SolValue}};
+use actix_web::{get, post, web::{self, service}, HttpResponse, Responder};
+use alloy::{network::Ethereum, primitives::{utils::{parse_ether, ParseUnits, Unit}, Address, FixedBytes, U256}, providers::ProviderBuilder, sol_types::{SolEvent, SolValue}};
 use crypto::hashes::keccak::{self};
 use serde_json::json;
 use std::str::FromStr;
@@ -87,17 +87,54 @@ async fn buy_dt(
 
     let balance: u32 = access_token_base_contract.balanceOf(booth_address)
       .call().await
+      .map(|b| b / Unit::ETHER.wei_const())
       .map_err(|e| ConnectorError::OtherError(format!("Contract reverted: {}", e.to_string())))?
       .to();
 
-    
     Ok(HttpResponse::Ok().json(json!({"balance": balance})))
   }
   else {
     Err(ConnectorError::OtherError("Transaction failed".to_owned()))
   }
 }
+
+/// Given an offering address, read the balance owned by the 
+#[get("/delegated/dt/{nft_address}")]
+async fn get_dt(  
+  path: web::Path<String>,
+  iota_state: web::Data<IotaState>,
+  sc_provider: web::Data<ScProvider>)
+    -> Result<impl Responder, ConnectorError>
+  {
+
+  // Retrieve the data token address associated to the offering
+  let nft_address = Address::from_str(&path)?;
+  let servicebase = ServiceBase::new(nft_address, sc_provider.clone().into_inner());
+
+  let dt_address = servicebase
+    .getATaddresses()
+    .call()
+    .await
+    .ok()
+    .and_then(|addresses| addresses.first().cloned())
+    .ok_or(ConnectorError::OtherError("DT address not found".to_owned()))?;
+
+  let access_token_base_contract = AccessTokenBase::new(dt_address, sc_provider.into_inner());
+  
+  let booth_address = iota_state.get_evm_address()
+    .await
+    .and_then(|booth_addr| Ok(Address::from_str(&booth_addr)?))?;
+
+  let balance: u32 = access_token_base_contract.balanceOf(booth_address)
+    .call().await
+    .map(|b| b / Unit::ETHER.wei_const())
+    .map_err(|e| ConnectorError::OtherError(format!("Contract reverted: {}", e.to_string())))?
+    .to();
+
+  Ok(HttpResponse::Ok().json(json!({"balance": balance})))
+}
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
-      .service(buy_dt);
+      .service(buy_dt)
+      .service(get_dt);
 }
