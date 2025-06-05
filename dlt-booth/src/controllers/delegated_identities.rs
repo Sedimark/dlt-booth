@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::collections::BTreeMap;
+
 use actix_web::{delete, get, post};
 use actix_web::{web, HttpResponse};
+use alloy::hex::ToHexExt;
 use deadpool_postgres::Pool;
 use identity_iota::iota::IotaDID;
-use serde_json::json;
+use serde_json::{json, Value};
 use url::Url;
+use crate::dtos::PresentationRequest;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
 use crate::repository::identity_operations::IdentityExt;
@@ -149,6 +153,38 @@ async fn delete_identity(
 
     Ok(HttpResponse::Ok().finish())
 }
+
+/// Generate a verifiable presentation in JWT format using DLT-booth's identity
+#[get("/identities/vp")]
+async fn gen_presentation(
+    body: web::Json<PresentationRequest>,
+    db_pool: web::Data<Pool>,
+    iota_state: web::Data<IotaState>,
+)
+-> Result<HttpResponse, ConnectorError>{
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let eth_address = iota_state.get_evm_address().await?;
+
+    // Find dlt-booth's identity
+    let identity = &pg_client.get_identity_with_eth_addr(&eth_address).await?;
+    // It is required to provide a proof of possession of both the identity key and EVM address
+    // - The VP is digitally signed as a JWT using the identity key
+    // - The EVM key manually signs the challenge. The signature is included in the VP
+
+    let signature = iota_state
+        .sign_evm_data(body.nonce.as_bytes())
+        .await
+        .map(|signature| signature.encode_hex_with_prefix())?;
+
+    let mut signature_claim = BTreeMap::new();
+    signature_claim.insert("walletSignature".to_owned(), Value::String(signature));
+    let vp = iota_state
+        .gen_presentation(&identity, body.nonce.clone(), Some(signature_claim))
+        .await?;
+
+    Ok(HttpResponse::Ok().json(json!({"jwt": vp.as_str()})))
+}
+
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
@@ -156,8 +192,8 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
         .service(create_identity)
         .service(delete_identity)
         .service(get_identity)
+        .service(gen_presentation)
     );
     //.service(patch_identity)       
     //.service(sign_data)
-    //.service(gen_presentation);
 }

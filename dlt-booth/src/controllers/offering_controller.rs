@@ -4,7 +4,7 @@
 use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{ProviderBuilder, WalletProvider}};
+use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::ProviderBuilder};
 use serde::Deserialize;
 use serde_json::json;
 use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
@@ -40,7 +40,7 @@ impl TryFrom<OfferingData> for PublishData{
   }
 }
 
-#[post("/offerings")]
+#[post("/delegated/offerings")]
 async fn publish_offering(
     iota_state: web::Data<IotaState>,
     offering: web::Json<OfferingData>
@@ -52,10 +52,9 @@ async fn publish_offering(
     let provider = ProviderBuilder::new()
     .network::<Ethereum>()
     .wallet(signer)
-    .on_http(iota_state.dlt_config.rpc_provider.clone());
+    .connect_http(iota_state.dlt_config.rpc_provider.clone());
 
     let factory = Factory::new(factory_address, provider);
-    log::error!("Default {:?}", factory.provider().default_signer_address());
 
     // compute nft address
     let call_builder = factory.tokenizeService(offering.into_inner().try_into()?)
@@ -65,7 +64,7 @@ async fn publish_offering(
         .call()
         .await
         .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
-    let nft_address = nft_address.erc721token.to_string();
+    let nft_address = nft_address.to_string();
 
     // execute transaction and wait for confirmation
     call_builder.send().await
@@ -89,7 +88,6 @@ async fn get_offerings(
     .call()
     .await
     .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0
     .iter().map(|addr| addr.to_string())
     .collect::<Vec<String>>();
   Ok(HttpResponse::Ok().json(json!({"addresses": result})))
@@ -107,34 +105,29 @@ async fn get_offering(
   let owner = servicebase.getServiceOwner()
     .call().await
     .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    .owner
     .to_string();
   let nft_name = servicebase.name()
     .call().await
-    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0;
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
   let description_uri = servicebase.tokenURI(U256::from(1))
     .call().await
-    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0;
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
 
   let description_hash = servicebase.getDescriptionHash()
     .call().await
-    .map_err(|e| ConnectorError::OtherError(e.to_string()))?
-    ._0;
+    .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
   
   Ok(HttpResponse::Ok().json(json!({
     "owner": owner,
     "name": nft_name,
     "descriptionUri": description_uri,
-    "description_hash": description_hash
+    "descriptionHash": description_hash
   })))
 }
 
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
-    .service(web::scope("/delegated")
-      .service(publish_offering)
-      .service(get_offerings))
+    .service(publish_offering)
+    .service(get_offerings)
     .service(get_offering);
 }

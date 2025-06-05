@@ -1,0 +1,15 @@
+meta {
+  name: Buy a new DT
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/delegated/dt/{{address}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  address: 0x512b2b5252B278E879829A77f3Ba700BD597eb6e
+}

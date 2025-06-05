@@ -15,3 +15,15 @@ sol!(
     Factory,
     "../smart-contracts/Factory.json"
 );
+
+sol!(
+    #[sol(rpc)]
+    AccessTokenBase,
+    "../smart-contracts/AccessTokenBase.json"
+);
+
+sol!(
+    #[sol(rpc)]
+    FixedRateExchange,
+    "../smart-contracts/FixedRateExchange.json"
+);

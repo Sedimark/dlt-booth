@@ -478,6 +478,7 @@ mod tests {
       faucet_api_endpoint: "https://faucet.testnet.shimmer.network/api/enqueue".to_owned(),
       issuer_url: "http://localhost:3213".to_owned(),
       factory_sc_address: "".to_string(),
+      fixed_rate_exchange_sc_address: "".to_string()
     };
 
     let evm_config = EvmAddressConfig::default().with_coin_type(60).with_address_index(0);

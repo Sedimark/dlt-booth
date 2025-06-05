@@ -60,7 +60,7 @@ pub struct SignDataRequest {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PresentationRequest {
-    pub challenge: String,
+    pub nonce: String,
     pub eth_signature: Option<String>
 }
 

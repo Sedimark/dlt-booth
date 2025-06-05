@@ -1,0 +1,15 @@
+meta {
+  name: Get DT balance
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/delegated/dt/{{address}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  address: 0xF7F7a30fF5B75603A4C0d547426346F3FaEC4E94
+}
