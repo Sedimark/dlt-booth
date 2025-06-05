@@ -138,6 +138,9 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_MAX_POOL_SIZE: 16
+      # Smart Contracts
+      FACTORY_SC_ADDRESS: 0x89e97902A12d43f211F9F776F2B1574CdEF8Cb68
+      FIXED_RATE_EXCHANGE_SC_ADDRESS 0x62a8FDeE09a8f4ec68668bd0EF38c3C764A09898
   postgres:
     container_name: postgres
     hostname: postgres
