@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use actix_web::{get, post, web::{self, service}, HttpResponse, Responder};
-use alloy::{network::Ethereum, primitives::{utils::{parse_ether, ParseUnits, Unit}, Address, FixedBytes, U256}, providers::ProviderBuilder, sol_types::{SolEvent, SolValue}};
+use actix_web::{get, post, web::{self}, HttpResponse, Responder};
+use alloy::{network::Ethereum, primitives::{utils::{parse_ether, Unit}, Address, FixedBytes}, providers::ProviderBuilder, sol_types::{SolEvent, SolValue}};
 use crypto::hashes::keccak::{self};
 use serde_json::json;
 use std::str::FromStr;
