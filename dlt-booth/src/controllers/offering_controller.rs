@@ -121,7 +121,7 @@ async fn get_offering(
     "owner": owner,
     "name": nft_name,
     "descriptionUri": description_uri,
-    "description_hash": description_hash
+    "descriptionHash": description_hash
   })))
 }
 
