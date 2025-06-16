@@ -16,7 +16,7 @@ async fn resolve_did(
 
   let document = iota_state.resolve_did(&did).await?;
 
-  Ok(HttpResponse::Ok().json(document))
+  Ok(HttpResponse::Ok().json(document.core_document()))
 }
 
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
