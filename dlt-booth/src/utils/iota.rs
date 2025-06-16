@@ -39,6 +39,7 @@ use identity_iota::storage::JwkDocumentExt;
 use identity_iota::storage::JwkMemStore;
 use identity_iota::storage::JwsSignatureOptions;
 use identity_iota::storage::Storage;
+use identity_iota::verification::CustomMethodData;
 use identity_iota::verification::MethodBuilder;
 use identity_iota::verification::MethodData;
 use identity_iota::verification::MethodScope;
@@ -255,9 +256,9 @@ impl IotaState {
     // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
     let method = MethodBuilder::new(properties)
       .id( id )
-      .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
+      .type_(MethodType::from_str("EcdsaSecp256k1RecoveryMethod2020")?)
       .controller(document.core_document().id().to_owned())
-      .data(MethodData::PublicKeyMultibase("".into()))
+      .data(MethodData::Custom(CustomMethodData{name: "blockchainAccountId".to_owned(), data: Value::String(format!("eip155:1:{}", eth_address.to_string()))}))
       .build().unwrap();
     document.insert_method(method, MethodScope::VerificationMethod)?;
     Ok(())
