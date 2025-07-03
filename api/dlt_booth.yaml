@@ -1,6 +1,6 @@
 openapi: '3.0.1'
 info:
-  version: '1.0.1'
+  version: '1.0.2'
   title: 'DLT Booth API'
   description: This document specifies the REST API for the DLT Booth service.
 externalDocs:
@@ -164,6 +164,93 @@ paths:
                 $ref: '#/components/schemas/DidDocument'
         500:
           description: Unexpected error
+  /dids/{did}/verify:
+    parameters:
+    - in: path
+      name: did
+      required: true
+      schema:
+        type: string
+    post:
+      tags:
+      - Identity management
+      - Utils
+      summary: Authenticate message signed by DID
+      description: Resolve DID URL and verify a digital signature
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                signature: 
+                  type: string
+                  format: byte
+                  items:
+                    type: number
+                message:
+                  type: string
+                  format: byte
+      responses:
+        200:
+          description: Verified
+        404:
+          description: DID unresolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401: 
+          description: Verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500: 
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /delegated/identities/sign:
+    post:
+      summary: Sign arbitrary data
+      description: Use the DLT Booth's identity to sign data
+      tags:
+      - Delegated
+      - Identity management
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  format: byte
+      responses:
+        201:
+          description: OK
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  signature:
+                    type: string
+                    format: byte
+        404:
+          description: Identity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 ################################################################
 #                                                              #
 #                          Offerings                           #
