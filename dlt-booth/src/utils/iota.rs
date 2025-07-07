@@ -38,6 +38,7 @@ use identity_iota::iota::NetworkName;
 use identity_iota::storage::JwkDocumentExt;
 use identity_iota::storage::JwkMemStore;
 use identity_iota::storage::JwsSignatureOptions;
+use identity_iota::storage::MethodDigest;
 use identity_iota::storage::Storage;
 use identity_iota::verification::CustomMethodData;
 use identity_iota::verification::MethodBuilder;
@@ -69,7 +70,8 @@ use super::configs::DLTConfig;
 use super::configs::EvmAddressConfig;
 use super::configs::KeyStorageConfig;
 use super::configs::WalletStorageConfig;
-
+use identity_iota::storage::KeyIdStorage;
+use identity_iota::storage::JwkStorage;
 
 pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
 
@@ -292,6 +294,7 @@ impl IotaState {
     
     Ok(())
   }
+  
   /// Requests funds from the faucet for the given `address` if it has not enough funds.
   pub async fn ensure_address_has_funds(&self) -> anyhow::Result<()> {
 
@@ -309,7 +312,6 @@ impl IotaState {
     Ok(())
   }
   
-
   /// Requests funds from the faucet for the given `address`.
   async fn request_faucet_funds(&self) -> anyhow::Result<()> {
     iota_sdk::client::request_funds_from_faucet(&self.dlt_config.faucet_api_endpoint, &self.address).await?;
@@ -355,13 +357,14 @@ impl IotaState {
     Ok(total_amount)
   }
 
+  /// Sign data and return the JWS formatted message
   pub async fn sign_data(
     &self,
     identity: Identity,
     payload: Vec<u8>,
     nonce: &Option<String>
   ) -> Result<Jws, ConnectorError> {
-    log::info!("Resolving did...");
+    log::debug!("Resolving did...");
     let document = self.resolve_did(identity.did.as_str()).await?;
 
     log::info!("create_jws");
@@ -382,6 +385,32 @@ impl IotaState {
     )?; 
 
     Ok(jws)
+  }
+
+  /// Sign data and return the raw bytes of the signature
+  pub async fn sign_data_raw(&self, vm_id: DIDUrl, document: IotaDocument, payload: impl AsRef<[u8]>) -> Result<Vec<u8>, ConnectorError> {
+    let vm = document.resolve_method(vm_id, Some(MethodScope::VerificationMethod))
+      .ok_or(ConnectorError::IdMissing)?;
+
+    // retrieve the key identifier from storage
+    let key_id_storage = self.key_storage
+      .key_id_storage();
+    let method_digest = &MethodDigest::new(vm)
+      .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
+    let public_jwk = vm.data().try_public_key_jwk()?;
+
+    let key_id = key_id_storage.get_key_id(method_digest)
+      .await
+      .map_err(|_| ConnectorError::OtherError("Key not found".to_string()))?;
+
+    // given the key id, sign using the key storage
+    let signature = self.key_storage
+      .key_storage()
+      .sign(&key_id, payload.as_ref(), public_jwk)
+      .await
+      .map_err(|_| ConnectorError::OtherError("Signature failed".to_string()))?;
+
+    Ok(signature)
   }
 
   pub async fn gen_presentation(
