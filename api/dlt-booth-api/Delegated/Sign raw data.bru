@@ -1,0 +1,21 @@
+meta {
+  name: Sign raw data
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{BASE_URL}}/delegated/identities/sign
+  body: multipartForm
+  auth: inherit
+}
+
+body:json {
+  {
+    "nonce": "e186f26f-4852-43fd-a08d-039b35d0ecff"
+  }
+}
+
+body:multipart-form {
+  message: @file(C:\Users\MicheleFesta\Downloads\hxPJZ_Ty.htm)
+}
