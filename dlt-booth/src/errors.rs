@@ -67,7 +67,7 @@ pub enum ConnectorError {
     SignerError(#[from] alloy::signers::Error),
 
     // Database Errors
-    #[error("Row not found")]   
+    #[error("Identity not found")]   
     RowNotFound,
     #[error("tokio_postgres error")]
     TokioPostgresError(#[from] tokio_postgres::error::Error),

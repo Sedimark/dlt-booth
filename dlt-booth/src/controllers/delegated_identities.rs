@@ -207,7 +207,7 @@ async fn sign(
     let eth_address = iota_state.get_evm_address().await?;
 
     // Find dlt-booth's identity
-    let identity = &pg_client.get_identity_with_eth_addr(&eth_address).await?;
+    let identity = pg_client.get_identity_with_eth_addr(&eth_address).await?;
 
     // Resolve identity
     let did = CoreDID::parse(identity.did.clone())?;
@@ -231,6 +231,6 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
         .service(delete_identity)
         .service(get_identity)
         .service(gen_presentation)
-        //.service(sign)
+        .service(sign)
     );
 }
