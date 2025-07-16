@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 
 use actix_multipart::form::bytes::Bytes;
 use actix_multipart::form::MultipartForm;
-use actix_multipart::Multipart;
 use actix_web::{delete, get, post};
 use actix_web::{web, HttpResponse};
 use alloy::hex::ToHexExt;

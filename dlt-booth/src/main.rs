@@ -5,8 +5,8 @@
 
 use actix_web::{http::{self}, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
-use alloy::providers::ProviderBuilder;
-use dlt_booth::{contracts::ScProvider, controllers::{self}, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}};
+use alloy::providers::{DynProvider, ProviderBuilder};
+use dlt_booth::{controllers::{self}, repository::postgres_repo::init, utils::{configs::{DLTConfig, DatabaseConfig, EvmAddressConfig, HttpServerConfig, KeyStorageConfig, WalletStorageConfig}, iota::IotaState, issuer::Issuer}};
 use clap::Parser;
 
 /// DLT Booth command line arguments
@@ -64,10 +64,10 @@ async fn main() -> anyhow::Result<()>{
     let iota_state_data = web::Data::new(iota_state);
 
     let issuer_client = Issuer::init(issuer_url)?;
-
     log::info!("Initializing custom provider");
-    let provider: ScProvider = ProviderBuilder::new()
+    let provider = ProviderBuilder::new()
         .connect_http(rpc_provider.clone());
+    let provider = DynProvider::new(provider);
     
     let provider_data = web::Data::new(provider);
 

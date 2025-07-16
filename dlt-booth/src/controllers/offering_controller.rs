@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2024 Fondazione LINKS
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::ProviderBuilder};
+use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{DynProvider, Provider, ProviderBuilder}};
 use serde::Deserialize;
 use serde_json::json;
-use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
+use crate::{contracts::{Factory::{self, PublishData}, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +53,7 @@ async fn publish_offering(
     .network::<Ethereum>()
     .wallet(signer)
     .connect_http(iota_state.dlt_config.rpc_provider.clone());
+    provider.client().set_poll_interval(Duration::from_millis(50));
 
     let factory = Factory::new(factory_address, provider);
 
@@ -78,7 +79,7 @@ async fn publish_offering(
 #[get("/offerings")]
 async fn get_offerings(
   iota_state: web::Data<IotaState>,
-  sc_provider: web::Data<ScProvider>
+  sc_provider: web::Data<DynProvider>
 ) -> Result<impl Responder, ConnectorError>{
 
   let factory_address = Address::from_str(&iota_state.dlt_config.factory_sc_address)?;
@@ -96,7 +97,7 @@ async fn get_offerings(
 #[get("/offerings/{nft_address}")]
 async fn get_offering(
   path: web::Path<String>,
-  sc_provider: web::Data<ScProvider>
+  sc_provider: web::Data<DynProvider>
 ) -> Result<impl Responder, ConnectorError>{
 
   let nft_address = Address::from_str(&path)?;

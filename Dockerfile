@@ -2,7 +2,7 @@
 # 1 - Build Stage
 # ---------------------------------------------------
 
-FROM rust:1.87.0-alpine AS dlt-booth-build
+FROM rust:1.86.0-alpine AS dlt-booth-build
 WORKDIR /app
 COPY ./dlt-booth .
 COPY ./smart-contracts /smart-contracts
