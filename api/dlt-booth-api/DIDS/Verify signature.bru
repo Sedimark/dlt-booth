@@ -1,0 +1,22 @@
+meta {
+  name: Verify signature
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/dids/verify?did=did%3Aiota%3Alnk%3A0xf418a2ce9dc1b92809727dbf0bc0b6fb8a527112bf5e262567f6942a5f3faf85%238DK9WALxVU%5FH%5Fq1NTnPmpp%2D15EMAQ3kKdnsmU3NBiEg
+  body: json
+  auth: inherit
+}
+
+params:query {
+  did: did%3Aiota%3Alnk%3A0xf418a2ce9dc1b92809727dbf0bc0b6fb8a527112bf5e262567f6942a5f3faf85%238DK9WALxVU%5FH%5Fq1NTnPmpp%2D15EMAQ3kKdnsmU3NBiEg
+}
+
+body:json {
+  {
+    "message": "aGVsbG8K",
+    "signature": "ZJs4c3DUjOFMzrYgN9cS-xaYYrarLDgOYWqfmT_j3ZM5BgRifu-gRNQ-IRZxKTd9aGxh5i9CKs4jIVqwptfjCQ"
+  }
+}

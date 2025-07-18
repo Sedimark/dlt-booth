@@ -8,12 +8,15 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+use actix_web::post;
+use actix_web::Responder;
 use alloy::signers::Signer;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 
 use crypto::keys::bip44::Bip44;
+use identity_eddsa_verifier::Ed25519Verifier;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::core::Object;
 use identity_iota::credential::Jws;
@@ -40,6 +43,7 @@ use identity_iota::storage::JwkMemStore;
 use identity_iota::storage::JwsSignatureOptions;
 use identity_iota::storage::MethodDigest;
 use identity_iota::storage::Storage;
+use identity_iota::verification::jws::VerificationInput;
 use identity_iota::verification::CustomMethodData;
 use identity_iota::verification::MethodBuilder;
 use identity_iota::verification::MethodData;
@@ -411,6 +415,27 @@ impl IotaState {
       .map_err(|_| ConnectorError::OtherError("Signature failed".to_string()))?;
 
     Ok(signature)
+  }
+
+  /// Verify generic messages 
+  pub fn verify_signature(&self, vm_id: DIDUrl, document: IotaDocument, signature: Box<[u8]>, message: Box<[u8]>)
+  -> Result<(), ConnectorError>
+  {
+    let vm = document.resolve_method(vm_id, Some(MethodScope::VerificationMethod))
+      .ok_or(ConnectorError::IdMissing)?;
+    
+    let public_jwk = vm.data().try_public_key_jwk()?;
+
+    let input = VerificationInput{
+      alg: JwsAlgorithm::EdDSA,
+      signing_input: message,
+      decoded_signature: signature
+    };
+
+    Ed25519Verifier::verify(input, public_jwk)
+      .map_err(|_| ConnectorError::SignatureVerificationError)?;
+
+    Ok(())
   }
 
   pub async fn gen_presentation(

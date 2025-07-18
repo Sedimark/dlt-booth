@@ -142,9 +142,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'             
-  /dids/{did}:
+  /dids:
     parameters:
-      - in: path
+      - in: query
         name: did
         required: true
         schema:
@@ -164,9 +164,9 @@ paths:
                 $ref: '#/components/schemas/DidDocument'
         500:
           description: Unexpected error
-  /dids/{did}/verify:
+  /dids/verify:
     parameters:
-    - in: path
+    - in: query
       name: did
       required: true
       schema:
@@ -179,18 +179,16 @@ paths:
       description: Resolve DID URL and verify a digital signature
       requestBody:
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               properties:
                 signature: 
                   type: string
-                  format: byte
-                  items:
-                    type: number
+                  description: base64 encoded signature
                 message:
                   type: string
-                  format: byte
+                  description: base64 encoded message
       responses:
         200:
           description: Verified
@@ -221,13 +219,13 @@ paths:
       - Identity management
       requestBody:
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               properties:
                 message:
                   type: string
-                  format: byte
+                  description: base64 encoded message
       responses:
         201:
           description: OK

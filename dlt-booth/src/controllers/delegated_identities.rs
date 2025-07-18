@@ -12,7 +12,8 @@ use alloy::hex::ToHexExt;
 use deadpool_postgres::Pool;
 use identity_iota::did::{CoreDID, DIDUrl};
 use identity_iota::iota::IotaDID;
-use identity_iota::verification::jwu::encode_b64;
+use identity_iota::verification::jwu::{decode_b64, encode_b64};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use url::Url;
 use crate::dtos::PresentationRequest;
@@ -23,9 +24,9 @@ use crate::utils::iota::IotaState;
 use crate::utils::issuer::Issuer;
 use crate::utils::jwt::decode_vc_unverified;
 
-#[derive(Debug, MultipartForm)]
+#[derive(Deserialize)]
 struct SignatureRequest{
-    message: Bytes
+    message: String
 }
 
 #[post("/identities")] 
@@ -163,7 +164,7 @@ async fn delete_identity(
 }
 
 /// Generate a verifiable presentation in JWT format using DLT-booth's identity
-#[get("/identities/vp")]
+#[post("/identities/vp")]
 async fn gen_presentation(
     body: web::Json<PresentationRequest>,
     db_pool: web::Data<Pool>,
@@ -194,9 +195,9 @@ async fn gen_presentation(
 }
 
 /// Generate a digital signature of the message provided in the request. The signing key is the SSI identity key.
-#[get("/identities/sign")]
+#[post("/identities/sign")]
 async fn sign(
-    MultipartForm(request): MultipartForm<SignatureRequest>,
+    request: actix_web::web::Json<SignatureRequest>,
     db_pool: web::Data<Pool>,
     iota_state: web::Data<IotaState>,    
 )
@@ -216,10 +217,17 @@ async fn sign(
     let mut did_url = DIDUrl::new(did, None);
     did_url.set_fragment(Some(&identity.fragment))?;
 
-    let signature = iota_state.sign_data_raw(did_url, did_document, request.message.data).await
-        .map(|bytes| encode_b64(bytes))?;
+    let message_bytes = decode_b64(&request.message);
 
-    Ok(HttpResponse::Ok().json(json!({"signature": signature})))
+    match message_bytes {
+        Ok(bytes) => {
+            let signature = iota_state.sign_data_raw(did_url, did_document, bytes).await
+                .map(|bytes| encode_b64(bytes))?;
+            Ok(HttpResponse::Ok().json(json!({"signature": signature})))
+        },
+        Err(_) => return Ok(HttpResponse::BadRequest().json(json!({"message": "Cannot decode message"})))
+    }
+
 }
 
 // this function could be located in a different module

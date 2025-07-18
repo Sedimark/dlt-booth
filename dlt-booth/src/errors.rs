@@ -36,6 +36,8 @@ pub enum ConnectorError {
     JwtValidationError(#[from] identity_iota::credential::JwtValidationError),
     #[error("Wallet unavailable with error: {0}")]
     WalletError(String),
+    #[error("Signature verification failed")]
+    SignatureVerificationError,
 
     #[error("Persist File Error")]
     PersistFileError,
@@ -104,7 +106,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::TokioPostgresError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::TokioPostgresMapperError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::PoolError(_) => StatusCode::FORBIDDEN,
-            ConnectorError::ResolveError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::ResolveError(_) => StatusCode::NOT_FOUND,
             ConnectorError::DidError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::JwkError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::CredentialMissing => StatusCode::BAD_REQUEST,
@@ -116,8 +118,8 @@ impl ResponseError for ConnectorError {
             ConnectorError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::VerificationMethodError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ConnectorError::JwtValidationError(_) => StatusCode::INTERNAL_SERVER_ERROR, // Update the match arm
-            ConnectorError::ChallengePendingError => StatusCode::BAD_REQUEST,
+            ConnectorError::JwtValidationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                        ConnectorError::ChallengePendingError => StatusCode::BAD_REQUEST,
             ConnectorError::MiddlewareError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::EthMethodNotFound => StatusCode::BAD_REQUEST,
             ConnectorError::InvalidVerificationMethodType => StatusCode::BAD_REQUEST,
@@ -131,7 +133,8 @@ impl ResponseError for ConnectorError {
             ConnectorError::ResourceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::SignerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::ConversionError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ConnectorError::ReqwestError(_) => StatusCode::INTERNAL_SERVER_ERROR
+            ConnectorError::ReqwestError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::SignatureVerificationError => StatusCode::UNAUTHORIZED,
         }
     }
 }
