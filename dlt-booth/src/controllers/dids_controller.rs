@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::ops::Deref;
 
-use actix_multipart::form::{bytes::Bytes, MultipartForm};
-use actix_web::{body::MessageBody, get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use identity_iota::{did::{DIDUrl, DID}, verification::jwu::decode_b64};
 use serde::Deserialize;
 use serde_json::json;

@@ -8,8 +8,6 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use actix_web::post;
-use actix_web::Responder;
 use alloy::signers::Signer;
 use anyhow::anyhow;
 use anyhow::Context;
