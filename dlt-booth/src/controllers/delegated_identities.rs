@@ -3,10 +3,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 use actix_web::{delete, get, post};
 use actix_web::{web, HttpResponse};
 use alloy::hex::ToHexExt;
+use alloy::primitives::Address;
+use alloy::providers::DynProvider;
 use deadpool_postgres::Pool;
 use identity_iota::did::{CoreDID, DIDUrl};
 use identity_iota::iota::IotaDID;
@@ -17,14 +20,22 @@ use url::Url;
 use crate::dtos::PresentationRequest;
 use crate::errors::ConnectorError;
 use crate::models::identity::Identity;
+use crate::repository::evm_data_operations::EvmAddressesExt;
 use crate::repository::identity_operations::IdentityExt;
 use crate::utils::iota::IotaState;
 use crate::utils::issuer::Issuer;
 use crate::utils::jwt::decode_vc_unverified;
-
+use crate::contracts::Identity as ScIdentity;
 #[derive(Deserialize)]
 struct SignatureRequest{
     message: String
+}
+
+#[derive(Deserialize)]
+struct Addresses{
+    identity: String,
+    factory: String,
+    fresc: String
 }
 
 #[post("/identities")] 
@@ -74,6 +85,15 @@ async fn create_identity(
     let updated_identity = pg_client.set_credential(&created_identity.eth_address, &created_identity.vcredential).await?;
     log::info!("Vc saved!");
     
+    // Request the set of SC addresses to the issuer
+    log::info!("Request SC addresses");
+    let addresses: Addresses = issuer_client.get_addresses().await?;
+
+    // Add addresses to database
+    pg_client.insert_address("identity", &addresses.identity).await?;
+    pg_client.insert_address("factory", &addresses.factory).await?;
+    pg_client.insert_address("fresc", &addresses.fresc).await?;
+
     match updated_identity.vcredential
     .and_then(|jwt| decode_vc_unverified(&jwt)) {
         Some(decoded) => Ok(HttpResponse::Ok().json(decoded)),
@@ -109,7 +129,8 @@ async fn get_identity(
 async fn delete_identity(
     db_pool: web::Data<Pool>,
     iota_state: web::Data<IotaState>,
-    issuer_client: web::Data<Issuer>
+    issuer_client: web::Data<Issuer>,
+    provider: web::Data<DynProvider>
 )-> Result<HttpResponse, ConnectorError>{
     log::debug!("controller delete_identity");
     let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
@@ -128,33 +149,49 @@ async fn delete_identity(
         None => return Err(ConnectorError::CredentialMissing)
     };
 
-    // Ask a challenge to the issuer
-    let challenge = issuer_client.get_challenge(&identity)
-        .await?;
+    // Recover Identity SC address
+    let address = pg_client.get_address("identity").await?;
+    let identity_sc = ScIdentity::new(address, provider.into_inner());
+    let holder_address = Address::from_str(&eth_address)?;
+    // Request to delete only if there's a valid credential
+    let has_identity = identity_sc.hasValidStatus(holder_address).call().await;
 
-    // Create a VP for the issuer
-    let vp_jwt = iota_state
-        .gen_presentation(identity, challenge, None)
-        .await?;
+    match has_identity {
+        Ok(true) => {
+            // Ask a challenge to the issuer
+            let challenge = issuer_client.get_challenge(&identity)
+                .await?;
 
-    // Read the credential endpoint from the VC JWT
-    let credential_id = decoded_obj
-        .inspect(|d| log::debug!("Decoded credential {:?}",d))
-        .and_then(|decoded| decoded.get("jti").cloned())
-        .inspect(|d| log::debug!("credential id {:?}",d))
-        .ok_or(ConnectorError::OtherError("Cannot parse the credential id".to_owned()))?
-        .as_str()
-        .and_then(|credential_id| Url::try_from(credential_id).ok())
-        .ok_or(ConnectorError::OtherError("Cannot parse the credential id".to_owned()))?;
+            // Create a VP for the issuer
+            let vp_jwt = iota_state
+                .gen_presentation(identity, challenge, None)
+                .await?;
 
-    // Revoke the credential from the issuer
-    issuer_client.revoke(&vp_jwt, credential_id)
-        .await?;
+            // Read the credential endpoint from the VC JWT
+            let credential_id = decoded_obj
+                .inspect(|d| log::debug!("Decoded credential {:?}",d))
+                .and_then(|decoded| decoded.get("jti").cloned())
+                .inspect(|d| log::debug!("credential id {:?}",d))
+                .ok_or(ConnectorError::OtherError("Cannot parse the credential id".to_owned()))?
+                .as_str()
+                .and_then(|credential_id| Url::try_from(credential_id).ok())
+                .ok_or(ConnectorError::OtherError("Cannot parse the credential id".to_owned()))?;
+
+            // Revoke the credential from the issuer
+            issuer_client.revoke(&vp_jwt, credential_id)
+                .await?;
+        },
+
+        Ok(false) => log::info!("Credential already deleted or expired"),
+        Err(e) => log::error!("Revoke operation skipped, SC error. Reason: {}", e)
+    }
 
     // Credential deleted. Now delete it from DLT
     let did = IotaDID::parse(identity.did.as_str())?;
     iota_state.delete_did(&did).await?;
 
+    // Drop SC addresses from the database
+    pg_client.delete_all_addresses().await?;
     // Finally drop the DID from database
     pg_client.delete_identity(&identity.did).await?;
 

@@ -26,3 +26,9 @@ sol!(
     FixedRateExchange,
     "../smart-contracts/FixedRateExchange.json"
 );
+
+sol!(
+    #[sol(rpc)]
+    Identity,
+    "../smart-contracts/Identity.json"
+);

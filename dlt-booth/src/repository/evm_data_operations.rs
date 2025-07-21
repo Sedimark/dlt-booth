@@ -13,14 +13,14 @@ use crate::errors::ConnectorError;
 
 #[async_trait]
 pub trait EvmAddressesExt {
-    async fn insert_address(&self, name: &str, address: Address) -> Result<(), ConnectorError>;
-    async fn delete_all(&self) -> Result<(), ConnectorError>;
+    async fn insert_address(&self, name: &str, address: &str) -> Result<(), ConnectorError>;
+    async fn delete_all_addresses(&self) -> Result<(), ConnectorError>;
     async fn get_address(&self, name: &str) -> Result<Address, ConnectorError>;
 }
 
 #[async_trait]
 impl EvmAddressesExt for PostgresClient {
-    async fn insert_address(&self, name: &str, address: Address) -> Result<(), ConnectorError>
+    async fn insert_address(&self, name: &str, address: &str) -> Result<(), ConnectorError>
     {
         let stmt = include_str!("../../sql/evm_addresses_insert.sql");
         let stmt = self.prepare(stmt).await?;
@@ -35,7 +35,7 @@ impl EvmAddressesExt for PostgresClient {
         Ok(())
     }
 
-    async fn delete_all(&self) -> Result<(), ConnectorError>
+    async fn delete_all_addresses(&self) -> Result<(), ConnectorError>
     {
         let stmt = include_str!("../../sql/evm_addresses_delete.sql");
         let stmt = self.prepare(stmt).await?;
