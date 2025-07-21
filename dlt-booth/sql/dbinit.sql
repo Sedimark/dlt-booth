@@ -38,4 +38,4 @@ CREATE TABLE IF NOT EXISTS dlt_booth.download_requests (
 CREATE TABLE IF NOT EXISTS dlt_booth.addresses (
 	addr_name		TEXT NOT NULL,
 	evm_address 	TEXT NOT NULL
-)
+);
