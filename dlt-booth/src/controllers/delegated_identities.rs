@@ -8,7 +8,10 @@ use actix_web::{delete, get, post};
 use actix_web::{web, HttpResponse};
 use alloy::hex::ToHexExt;
 use deadpool_postgres::Pool;
+use identity_iota::did::{CoreDID, DIDUrl};
 use identity_iota::iota::IotaDID;
+use identity_iota::verification::jwu::{decode_b64, encode_b64};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use url::Url;
 use crate::dtos::PresentationRequest;
@@ -19,6 +22,10 @@ use crate::utils::iota::IotaState;
 use crate::utils::issuer::Issuer;
 use crate::utils::jwt::decode_vc_unverified;
 
+#[derive(Deserialize)]
+struct SignatureRequest{
+    message: String
+}
 
 #[post("/identities")] 
 async fn create_identity(
@@ -155,7 +162,7 @@ async fn delete_identity(
 }
 
 /// Generate a verifiable presentation in JWT format using DLT-booth's identity
-#[get("/identities/vp")]
+#[post("/identities/vp")]
 async fn gen_presentation(
     body: web::Json<PresentationRequest>,
     db_pool: web::Data<Pool>,
@@ -185,6 +192,42 @@ async fn gen_presentation(
     Ok(HttpResponse::Ok().json(json!({"jwt": vp.as_str()})))
 }
 
+/// Generate a digital signature of the message provided in the request. The signing key is the SSI identity key.
+#[post("/identities/sign")]
+async fn sign(
+    request: actix_web::web::Json<SignatureRequest>,
+    db_pool: web::Data<Pool>,
+    iota_state: web::Data<IotaState>,    
+)
+-> Result<HttpResponse, ConnectorError>
+{
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let eth_address = iota_state.get_evm_address().await?;
+
+    // Find dlt-booth's identity
+    let identity = pg_client.get_identity_with_eth_addr(&eth_address).await?;
+
+    // Resolve identity
+    let did = CoreDID::parse(identity.did.clone())?;
+    let did_document = iota_state.resolve_did(&identity.did).await?;
+
+    // Build the URL of the Verification Method
+    let mut did_url = DIDUrl::new(did, None);
+    did_url.set_fragment(Some(&identity.fragment))?;
+
+    let message_bytes = decode_b64(&request.message);
+
+    match message_bytes {
+        Ok(bytes) => {
+            let signature = iota_state.sign_data_raw(did_url, did_document, bytes).await
+                .map(|bytes| encode_b64(bytes))?;
+            Ok(HttpResponse::Ok().json(json!({"signature": signature})))
+        },
+        Err(_) => return Ok(HttpResponse::BadRequest().json(json!({"message": "Cannot decode message"})))
+    }
+
+}
+
 // this function could be located in a different module
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
     cfg
@@ -193,7 +236,6 @@ pub fn scoped_config(cfg: &mut web::ServiceConfig) {
         .service(delete_identity)
         .service(get_identity)
         .service(gen_presentation)
+        .service(sign)
     );
-    //.service(patch_identity)       
-    //.service(sign_data)
 }
