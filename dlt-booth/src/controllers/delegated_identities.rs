@@ -186,9 +186,11 @@ async fn delete_identity(
         Err(e) => log::error!("Revoke operation skipped, SC error. Reason: {}", e)
     }
 
-    // Credential deleted. Now delete it from DLT
-    let did = IotaDID::parse(identity.did.as_str())?;
-    iota_state.delete_did(&did).await?;
+    // Credential deleted. Now delete it from DLT iff it is still resolvable
+    if iota_state.resolve_did(&identity.did).await.is_ok() {
+        let did = IotaDID::parse(identity.did.as_str())?;
+        iota_state.delete_did(&did).await?;
+    }
 
     // Drop SC addresses from the database
     pg_client.delete_all_addresses().await?;
