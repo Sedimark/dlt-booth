@@ -525,13 +525,12 @@ mod tests {
       file_path:"test_w.stronghold".to_owned(), 
       password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap()};
     
-    let dlt_config = DLTConfig{ rpc_provider: Url::from_str("https://json-rpc.evm.testnet.shimmer.network").unwrap(),
+    let dlt_config = DLTConfig{ 
+      rpc_provider: Url::from_str("https://json-rpc.evm.testnet.shimmer.network").unwrap(),
       chain_id: 1073,
       node_url: "https://api.testnet.shimmer.network".to_owned(),
       faucet_api_endpoint: "https://faucet.testnet.shimmer.network/api/enqueue".to_owned(),
-      issuer_url: "http://localhost:3213".to_owned(),
-      factory_sc_address: "".to_string(),
-      fixed_rate_exchange_sc_address: "".to_string()
+      issuer_url: "http://localhost:3213".to_owned()
     };
 
     let evm_config = EvmAddressConfig::default().with_coin_type(60).with_address_index(0);

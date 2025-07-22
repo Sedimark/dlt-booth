@@ -117,14 +117,7 @@ pub struct DLTConfig {
     
     /// Issuer Endpoint
     #[arg(long, env, required = true)]   
-    pub issuer_url: String,
-
-    /// Factory SC address
-    #[arg(long, env, required = true)]   
-    pub factory_sc_address: String,
-
-    #[arg(long, env, required = true)]   
-    pub fixed_rate_exchange_sc_address: String
+    pub issuer_url: String
 }
 
 /// Configuration for Bip44 address generation

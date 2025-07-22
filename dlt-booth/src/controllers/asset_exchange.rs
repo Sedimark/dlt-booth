@@ -5,20 +5,25 @@
 use actix_web::{get, post, web::{self}, HttpResponse, Responder};
 use alloy::{network::Ethereum, primitives::{utils::{parse_ether, Unit}, Address, FixedBytes}, providers::{DynProvider, Provider, ProviderBuilder}, sol_types::{SolEvent, SolValue}};
 use crypto::hashes::keccak::{self};
+use deadpool_postgres::Pool;
 use serde_json::json;
 use std::{str::FromStr, time::Duration};
 
-use crate::{contracts::{AccessTokenBase, FixedRateExchange::{self, SuccessfulSwap}, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
+use crate::{contracts::{AccessTokenBase, FixedRateExchange::{self, SuccessfulSwap}, ServiceBase}, errors::ConnectorError, repository::evm_data_operations::EvmAddressesExt, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
 
 /// Buy a new data token associated to the `nft_address` offering using dlt-booth identity
 #[post("/delegated/dt/{nft_address}")]
 async fn buy_dt(
+  db_pool: web::Data<Pool>,
   path: web::Path<String>,
   iota_state: web::Data<IotaState>,
   sc_provider: web::Data<DynProvider>
 )
   -> Result<impl Responder, ConnectorError>
 {
+
+  let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+  let fresc_address = pg_client.get_address("fresc").await?;
 
   // Retrieve the data token address associated to the offering
   let nft_address = Address::from_str(&path)?;
@@ -38,7 +43,6 @@ async fn buy_dt(
     .await
     .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
 
-  let fre_address = Address::from_str(&iota_state.dlt_config.fixed_rate_exchange_sc_address)?;
   let secret_manager = iota_state.wallet.get_secret_manager().try_read()?;
   let signer = iota_state.get_evm_signer(&secret_manager).await?;
   let signer = StrongholdWallet::new(signer);
@@ -48,7 +52,7 @@ async fn buy_dt(
     .connect_http(iota_state.dlt_config.rpc_provider.clone());
   provider.client().set_poll_interval(Duration::from_millis(50));
 
-  let fixed_rate_exchange_contract = FixedRateExchange::new(fre_address, provider);
+  let fixed_rate_exchange_contract = FixedRateExchange::new(fresc_address, provider);
 
   // compute the exchange id
   let input = (dt_address, owner)
