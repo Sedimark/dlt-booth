@@ -5,11 +5,11 @@ meta {
 }
 
 get {
-  url: {{BASE_URL}}/dids/{{did}}
+  url: {{BASE_URL}}/dids?did=did%3Aiota%3Alnk%3A0x6613b28a0c70344a8c772281e2dc600a5e22d85a60bf3c89948ab72687ba339e%0A
   body: none
   auth: none
 }
 
-vars:pre-request {
-  did: did:iota:lnk:0x4d1d327cbae22529391d2f31f7c260752ccd2bdf55aeeebe6c6d4afbb26ab8f0
+params:query {
+  did: did%3Aiota%3Alnk%3A0x6613b28a0c70344a8c772281e2dc600a5e22d85a60bf3c89948ab72687ba339e%0A
 }

@@ -6,7 +6,7 @@ use std::str::FromStr;
 use alloy::hex::ToHexExt;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::{core::Object, credential::{Jwt, JwtCredentialValidator}, document::verifiable::JwsVerificationOptions, iota::IotaDocument};
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
 
@@ -120,4 +120,19 @@ impl Issuer{
         Ok(())
     }
 
+    pub async fn get_addresses<T>(&self) -> Result<T, ConnectorError>
+        where T: DeserializeOwned{
+        let mut addresses_url = self.base_url.clone();
+        let client = &self.client;
+
+        addresses_url.set_path("/api/addresses");
+
+        let addresses = client.get(addresses_url)
+            .send()
+            .await?
+            .json::<T>()
+            .await?;
+
+        Ok(addresses)
+    }
 }
