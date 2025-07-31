@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2024 Fondazione LINKS
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::ProviderBuilder};
+use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{DynProvider, Provider, ProviderBuilder}};
+use deadpool_postgres::Pool;
 use serde::Deserialize;
 use serde_json::json;
-use crate::{contracts::{Factory::{self, PublishData}, ScProvider, ServiceBase}, errors::ConnectorError, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
+use crate::{contracts::{Factory::{self, PublishData}, ServiceBase}, errors::ConnectorError, repository::evm_data_operations::EvmAddressesExt, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,10 +43,13 @@ impl TryFrom<OfferingData> for PublishData{
 
 #[post("/delegated/offerings")]
 async fn publish_offering(
+    db_pool: web::Data<Pool>,
     iota_state: web::Data<IotaState>,
     offering: web::Json<OfferingData>
 ) -> Result<HttpResponse, ConnectorError>{
-    let factory_address = Address::from_str(&iota_state.dlt_config.factory_sc_address)?;
+    let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+    let factory_address = pg_client.get_address("factory").await?;
+    
     let secret_manager = iota_state.wallet.get_secret_manager().try_read()?;
     let signer = iota_state.get_evm_signer(&secret_manager).await?;
     let signer = StrongholdWallet::new(signer);
@@ -53,6 +57,7 @@ async fn publish_offering(
     .network::<Ethereum>()
     .wallet(signer)
     .connect_http(iota_state.dlt_config.rpc_provider.clone());
+    provider.client().set_poll_interval(Duration::from_millis(50));
 
     let factory = Factory::new(factory_address, provider);
 
@@ -77,11 +82,13 @@ async fn publish_offering(
 
 #[get("/offerings")]
 async fn get_offerings(
-  iota_state: web::Data<IotaState>,
-  sc_provider: web::Data<ScProvider>
+  db_pool: web::Data<Pool>,
+  sc_provider: web::Data<DynProvider>
 ) -> Result<impl Responder, ConnectorError>{
 
-  let factory_address = Address::from_str(&iota_state.dlt_config.factory_sc_address)?;
+  // Retrieve factory address
+  let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
+  let factory_address = pg_client.get_address("factory").await?;
   let factory = Factory::new(factory_address, sc_provider.into_inner());
   let result = factory
     .getAllNFTCreatedAddress()
@@ -96,7 +103,7 @@ async fn get_offerings(
 #[get("/offerings/{nft_address}")]
 async fn get_offering(
   path: web::Path<String>,
-  sc_provider: web::Data<ScProvider>
+  sc_provider: web::Data<DynProvider>
 ) -> Result<impl Responder, ConnectorError>{
 
   let nft_address = Address::from_str(&path)?;

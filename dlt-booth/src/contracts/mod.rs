@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use alloy::{providers::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, Identity, RootProvider}, sol};
+use alloy::sol;
 
-pub type ScProvider = FillProvider<JoinFill<Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>;
 sol!(
     #[sol(rpc)]
     ServiceBase,
@@ -26,4 +25,10 @@ sol!(
     #[sol(rpc)]
     FixedRateExchange,
     "../smart-contracts/FixedRateExchange.json"
+);
+
+sol!(
+    #[sol(rpc)]
+    Identity,
+    "../smart-contracts/Identity.json"
 );

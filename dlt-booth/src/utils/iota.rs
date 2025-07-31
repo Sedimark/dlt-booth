@@ -14,6 +14,7 @@ use anyhow::Context;
 use anyhow::Result;
 
 use crypto::keys::bip44::Bip44;
+use identity_eddsa_verifier::Ed25519Verifier;
 use identity_eddsa_verifier::EdDSAJwsVerifier;
 use identity_iota::core::Object;
 use identity_iota::credential::Jws;
@@ -38,7 +39,10 @@ use identity_iota::iota::NetworkName;
 use identity_iota::storage::JwkDocumentExt;
 use identity_iota::storage::JwkMemStore;
 use identity_iota::storage::JwsSignatureOptions;
+use identity_iota::storage::MethodDigest;
 use identity_iota::storage::Storage;
+use identity_iota::verification::jws::VerificationInput;
+use identity_iota::verification::CustomMethodData;
 use identity_iota::verification::MethodBuilder;
 use identity_iota::verification::MethodData;
 use identity_iota::verification::MethodScope;
@@ -68,7 +72,8 @@ use super::configs::DLTConfig;
 use super::configs::EvmAddressConfig;
 use super::configs::KeyStorageConfig;
 use super::configs::WalletStorageConfig;
-
+use identity_iota::storage::KeyIdStorage;
+use identity_iota::storage::JwkStorage;
 
 pub type MemStorage = Storage<StrongholdStorage, StrongholdStorage>;
 
@@ -255,9 +260,9 @@ impl IotaState {
     // Add eth addr as verification method: https://www.w3.org/TR/did-spec-registries/#blockchainaccountid 
     let method = MethodBuilder::new(properties)
       .id( id )
-      .type_(MethodType::from_str("EcdsaSecp256k1RecoverySignature2020")?)
+      .type_(MethodType::from_str("EcdsaSecp256k1RecoveryMethod2020")?)
       .controller(document.core_document().id().to_owned())
-      .data(MethodData::PublicKeyMultibase("".into()))
+      .data(MethodData::Custom(CustomMethodData{name: "blockchainAccountId".to_owned(), data: Value::String(format!("eip155:1:{}", eth_address.to_string()))}))
       .build().unwrap();
     document.insert_method(method, MethodScope::VerificationMethod)?;
     Ok(())
@@ -291,6 +296,7 @@ impl IotaState {
     
     Ok(())
   }
+  
   /// Requests funds from the faucet for the given `address` if it has not enough funds.
   pub async fn ensure_address_has_funds(&self) -> anyhow::Result<()> {
 
@@ -308,7 +314,6 @@ impl IotaState {
     Ok(())
   }
   
-
   /// Requests funds from the faucet for the given `address`.
   async fn request_faucet_funds(&self) -> anyhow::Result<()> {
     iota_sdk::client::request_funds_from_faucet(&self.dlt_config.faucet_api_endpoint, &self.address).await?;
@@ -354,13 +359,14 @@ impl IotaState {
     Ok(total_amount)
   }
 
+  /// Sign data and return the JWS formatted message
   pub async fn sign_data(
     &self,
     identity: Identity,
     payload: Vec<u8>,
     nonce: &Option<String>
   ) -> Result<Jws, ConnectorError> {
-    log::info!("Resolving did...");
+    log::debug!("Resolving did...");
     let document = self.resolve_did(identity.did.as_str()).await?;
 
     log::info!("create_jws");
@@ -381,6 +387,53 @@ impl IotaState {
     )?; 
 
     Ok(jws)
+  }
+
+  /// Sign data and return the raw bytes of the signature
+  pub async fn sign_data_raw(&self, vm_id: DIDUrl, document: IotaDocument, payload: impl AsRef<[u8]>) -> Result<Vec<u8>, ConnectorError> {
+    let vm = document.resolve_method(vm_id, Some(MethodScope::VerificationMethod))
+      .ok_or(ConnectorError::IdMissing)?;
+
+    // retrieve the key identifier from storage
+    let key_id_storage = self.key_storage
+      .key_id_storage();
+    let method_digest = &MethodDigest::new(vm)
+      .map_err(|e| ConnectorError::OtherError(e.to_string()))?;
+    let public_jwk = vm.data().try_public_key_jwk()?;
+
+    let key_id = key_id_storage.get_key_id(method_digest)
+      .await
+      .map_err(|_| ConnectorError::OtherError("Key not found".to_string()))?;
+
+    // given the key id, sign using the key storage
+    let signature = self.key_storage
+      .key_storage()
+      .sign(&key_id, payload.as_ref(), public_jwk)
+      .await
+      .map_err(|_| ConnectorError::OtherError("Signature failed".to_string()))?;
+
+    Ok(signature)
+  }
+
+  /// Verify generic messages 
+  pub fn verify_signature(&self, vm_id: DIDUrl, document: IotaDocument, signature: Box<[u8]>, message: Box<[u8]>)
+  -> Result<(), ConnectorError>
+  {
+    let vm = document.resolve_method(vm_id, Some(MethodScope::VerificationMethod))
+      .ok_or(ConnectorError::IdMissing)?;
+    
+    let public_jwk = vm.data().try_public_key_jwk()?;
+
+    let input = VerificationInput{
+      alg: JwsAlgorithm::EdDSA,
+      signing_input: message,
+      decoded_signature: signature
+    };
+
+    Ed25519Verifier::verify(input, public_jwk)
+      .map_err(|_| ConnectorError::SignatureVerificationError)?;
+
+    Ok(())
   }
 
   pub async fn gen_presentation(
@@ -472,13 +525,12 @@ mod tests {
       file_path:"test_w.stronghold".to_owned(), 
       password: ConfigSecret::from_str("some_hopefully_secure_password").unwrap()};
     
-    let dlt_config = DLTConfig{ rpc_provider: Url::from_str("https://json-rpc.evm.testnet.shimmer.network").unwrap(),
+    let dlt_config = DLTConfig{ 
+      rpc_provider: Url::from_str("https://json-rpc.evm.testnet.shimmer.network").unwrap(),
       chain_id: 1073,
       node_url: "https://api.testnet.shimmer.network".to_owned(),
       faucet_api_endpoint: "https://faucet.testnet.shimmer.network/api/enqueue".to_owned(),
-      issuer_url: "http://localhost:3213".to_owned(),
-      factory_sc_address: "".to_string(),
-      fixed_rate_exchange_sc_address: "".to_string()
+      issuer_url: "http://localhost:3213".to_owned()
     };
 
     let evm_config = EvmAddressConfig::default().with_coin_type(60).with_address_index(0);

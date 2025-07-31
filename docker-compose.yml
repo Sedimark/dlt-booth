@@ -30,7 +30,7 @@ services:
     env_file: 
       - ./dlt-booth/env/postgres.env
     volumes: 
-      - "./dlt-booth/postgresdata:/var/lib/postgresql/data:ro=true,U=true"
+      - "postgresdata:/var/lib/postgresql/data:ro=true,U=true"
       - "./dlt-booth/sql/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql:ro=true,U=true"
     restart: always
     healthcheck:
@@ -50,3 +50,6 @@ services:
 networks:
   dlt-booth-net:
     name: dlt-booth-net
+
+volumes:
+  postgresdata:

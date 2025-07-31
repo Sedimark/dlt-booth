@@ -1,6 +1,6 @@
 openapi: '3.0.1'
 info:
-  version: '1.0.1'
+  version: '1.0.2'
   title: 'DLT Booth API'
   description: This document specifies the REST API for the DLT Booth service.
 externalDocs:
@@ -142,9 +142,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'             
-  /dids/{did}:
+  /dids:
     parameters:
-      - in: path
+      - in: query
         name: did
         required: true
         schema:
@@ -164,6 +164,91 @@ paths:
                 $ref: '#/components/schemas/DidDocument'
         500:
           description: Unexpected error
+  /dids/verify:
+    parameters:
+    - in: query
+      name: did
+      required: true
+      schema:
+        type: string
+    post:
+      tags:
+      - Identity management
+      - Utils
+      summary: Authenticate message signed by DID
+      description: Resolve DID URL and verify a digital signature
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature: 
+                  type: string
+                  description: base64 encoded signature
+                message:
+                  type: string
+                  description: base64 encoded message
+      responses:
+        200:
+          description: Verified
+        404:
+          description: DID unresolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401: 
+          description: Verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500: 
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /delegated/identities/sign:
+    post:
+      summary: Sign arbitrary data
+      description: Use the DLT Booth's identity to sign data
+      tags:
+      - Delegated
+      - Identity management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: base64 encoded message
+      responses:
+        201:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signature:
+                    type: string
+                    format: byte
+        404:
+          description: Identity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 ################################################################
 #                                                              #
 #                          Offerings                           #
@@ -405,23 +490,25 @@ components:
     DidDocument:
       type: object
       example:
-        doc:
-          id: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324
-          verificationMethod:
-            - id: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324#m0K_TnUAenJRKuJ_WU8prsHavPcsACNdRRxk3vPl8Mg
-              controller: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324
-              type: JsonWebKey2020
-              publicKeyJwk:
-                kty: OKP
-                alg: EdDSA
-                kid: m0K_TnUAenJRKuJ_WU8prsHavPcsACNdRRxk3vPl8Mg
-                crv: Ed25519
-                x: Fl_ytZJjvo6mDXhydn-ah-RLcyWXX1mVJRKKGlJ21Ds
-          meta:
-            created: '2025-02-17T10:37:29Z'
-            updated: '2025-02-17T10:37:29Z'
-            governorAddress: lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98
-            stateControllerAddress: lnk1qqg0e766887n74jj70mgagmgkvvdzwk9f6mz9m67gje249e683wlslhqw98    
+        id: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324
+        verificationMethod:
+          - id: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324#m0K_TnUAenJRKuJ_WU8prsHavPcsACNdRRxk3vPl8Mg
+            controller: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324
+            type: JsonWebKey2020
+            publicKeyJwk:
+              kty: OKP
+              alg: EdDSA
+              kid: m0K_TnUAenJRKuJ_WU8prsHavPcsACNdRRxk3vPl8Mg
+              crv: Ed25519
+              x: Fl_ytZJjvo6mDXhydn-ah-RLcyWXX1mVJRKKGlJ21Ds
+          - id: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324#ethAddress
+            controller: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324
+            type: EcdsaSecp256k1RecoveryMethod2020
+            blockchainAccountId: eip155:1:0xfac00f6ca056036d5163697928aed93ed2490d99
+        service:
+          - id: did:iota:lnk:0x94e4a3c83a66c2592069e74937887f9f2baf63d96f156d36dabd3f3482395324#service-link
+            type: ServiceType
+            serviceEndpoint: http://example.com
     Offering:
       type: object
       properties:

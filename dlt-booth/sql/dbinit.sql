@@ -4,7 +4,7 @@
 
 CREATE SCHEMA IF NOT EXISTS dlt_booth;
 
-CREATE TABLE dlt_booth.identities (
+CREATE TABLE IF NOT EXISTS dlt_booth.identities (
 	id          BIGSERIAL PRIMARY KEY,
 	eth_address TEXT NOT NULL,
 	did         TEXT NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE dlt_booth.identities (
 	UNIQUE (eth_address)
 );
 
-CREATE TABLE dlt_booth.assets (
+CREATE TABLE IF NOT EXISTS dlt_booth.assets (
 	id 				BIGSERIAL PRIMARY KEY,
     nft_address 	TEXT,
     cid 			TEXT NOT NULL,
@@ -27,10 +27,15 @@ CREATE TABLE dlt_booth.assets (
 	UNIQUE (nft_address, cid, alias)
 );
 
-CREATE TABLE dlt_booth.download_requests (
+CREATE TABLE IF NOT EXISTS dlt_booth.download_requests (
   	nonce 				TEXT PRIMARY KEY,
   	-- asset_id 		BIGINT NOT NULL REFERENCES dlt_booth.assets(id) ON DELETE RESTRICT,
   	requester_did 		TEXT NOT NULL,
   	-- expiration		TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   	expiration			TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dlt_booth.addresses (
+	addr_name		TEXT NOT NULL,
+	evm_address 	TEXT NOT NULL
 );

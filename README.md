@@ -17,32 +17,35 @@ DLT Booth can be used to execute operation on a configured EVM through http requ
 
 **EVM operations**
 - EIP191 formatted message signatures
-- Execute EVM transactions
+- Execute EVM transactions: 
+  - Publish offering metadata
+  - Exchange data tokens
 
 ## ToC
 
 1. [Environnement setup](#environnement-setup)
 2. [Running the application](#running-the-application)
-3. [Useful tools for development and integration](#dev-utils)
+3. [Next Steps](#next-steps)
+4. [Useful tools for development and integration](#dev-utils)
 
 ## Environment setup
 In dlt-booth/env folder, create a .env file starting from example.env and update the values accordingly to your development enviroment.
 
 ```env
-RUST_LOG=debug # Log level [debug, info, error]
+RUST_LOG="dlt_booth=debug, info" # Log level [debug, info, error]
 
 # HTTP SERVER CONFIG
 HOST_ADDRESS=0.0.0.0 # Http server bind address
 HOST_PORT=8085 # Http server bind port
 
 # DLT CONFIG
-NODE_URL="https://api.testnet.shimmer.network"
-FAUCET_API_ENDPOINT="https://faucet.testnet.shimmer.network/api/enqueue"
-RPC_PROVIDER="https://json-rpc.evm.testnet.shimmer.network"
-CHAIN_ID=1073
+NODE_URL=https://stardust.unican.sedimark.eu
+FAUCET_API_ENDPOINT=https://stardust.linksfoundation.com/faucet/l1/api/enqueue
+RPC_PROVIDER=https://stardust.unican.sedimark.eu/sedimark-chain
+CHAIN_ID=1074
 
 # ISSUER CONFIG
-ISSUER_URL=http://localhost:3213/api
+ISSUER_URL=http://issuer.stardust.linksfoundation.com/api
 
 # KEY STORAGE CONFIG
 KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH="./key_storage.stronghold" # file path where secrets will be stored
@@ -59,11 +62,8 @@ DB_NAME="dlt_booth"
 DB_HOST=127.0.0.1 # "postgres" for deploying, "127.0.0.1 " for dev
 DB_PORT=5432
 DB_MAX_POOL_SIZE=16
-
-# Smart Contracts
-FACTORY_SC_ADDRESS="0x89e97902A12d43f211F9F776F2B1574CdEF8Cb68"
-FIXED_RATE_EXCHANGE_SC_ADDRESS="0x62a8FDeE09a8f4ec68668bd0EF38c3C764A09898"
 ```
+
 ## Running the Application
 
 ### Running from Docker
@@ -88,6 +88,28 @@ Generated keys are stored in files generated for key storage and wallet. They're
 - Set corresponding passwords in the environnment variable
 - Restore Postgres backup
 
+
+## Next steps
+Some interactions of the component with the DLT are changing the state of the Smart Contract Platform. Specifically the DLT-booth can perform operations associated to the marketplace if the followings conditions are met:
+1. The DLT-booth has a valid Verifiable Credential, provided by a supported Issuer for the SEDIMARK Marketplace.
+2. The EVM address associated with the participant identity can sign transaction on the smart contract platform. The address also needs to own some native tokens to complete stateful operations on the chain.
+
+### VC Issuance
+The DLT-booth is involved during the onboarding process; it can connect to the configured issuer and negotiate the issuance of a Verifiable Credential that can be use to operate in the Marketplace.
+
+Participants of the Marketplace must create their own self sovereign identity using the `POST /delegated/identities` method.
+
+The DLT-Booth provide information about the generated identity through the following endpoints:
+- `GET /delegated/identities` => Claims verified by the issuer
+- `GET /dids/did?={url_encoded_did}` => Resolve the credential subject's DID and read public keys from the DID document
+
+### Funding an EVM account
+Participants are required to be funded with native tokens, in order to operate on the Smart Contract Platform. EVM addresses added in participants' DID documents can be funded with a faucet [available online](https://stardust.linksfoundation.com/faucet/l2/). This simple user interface allows you to specify the address where to send funds. The address is the one specified in the DID document of the participant.
+
+Finally, a participant that owns a valid credential and enough funds can update the SCP state with the following methods:
+- `POST /delegated/offerings` => Publish a new offering
+- `POST /delegated/dt/{nftAddress}` => Purchase a new datatoken
+
 ## Dev Utils
 - [OpenAPI spec](/api/dlt_booth.yaml)
 - [Bruno APIs](/api/dlt-booth-api)
@@ -107,7 +129,6 @@ services:
     depends_on:
       postgres:
        condition: service_healthy 
-    #enables data persistance of key storage and wallet. Remove it to disable data persistance
     volumes:
       - "./docker_data:/data"
     networks:
@@ -124,7 +145,7 @@ services:
       RPC_PROVIDER: https://stardust.unican.sedimark.eu/sedimark-chain
       CHAIN_ID: 1074
       # ISSUER CONFIG
-      ISSUER_URL: http://sedimark-issuer-rs:3213/api
+      ISSUER_URL: http://issuer.stardust.linksfoundation.com/api
       # KEY STORAGE CONFIG
       KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH: ./key_storage.stronghold
       KEY_STORAGE_STRONGHOLD_PASSWORD: some_hopefully_secure_password
@@ -138,9 +159,6 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_MAX_POOL_SIZE: 16
-      # Smart Contracts
-      FACTORY_SC_ADDRESS: 0x89e97902A12d43f211F9F776F2B1574CdEF8Cb68
-      FIXED_RATE_EXCHANGE_SC_ADDRESS: 0x62a8FDeE09a8f4ec68668bd0EF38c3C764A09898
   postgres:
     container_name: postgres
     hostname: postgres
