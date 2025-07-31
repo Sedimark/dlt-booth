@@ -203,19 +203,19 @@ kubectl port-forward -n $DLT_BOOTH_NAMESPACE svc/$DLT_BOOTH_APP_NAME 8085:8085
 ### Prerequisites
 Some interactions of the component with the DLT are changing the state of the Smart Contract Platform. Specifically the DLT-booth can perform operations associated to the marketplace if the followings conditions are met:
 1. The DLT-booth has a valid Verifiable Credential, provided by a supported Issuer for the SEDIMARK Marketplace.
-2. The EVM address associated with the participant identity. The address also needs to own some native tokens to complete stateful operation on the chain.
+2. The EVM address associated with the participant identity can sign transaction on the smart contract platform. The address also needs to own some native tokens to complete stateful operations on the chain.
 
 #### VC Issuance
 The DLT-booth is involved during the onboarding process; it can connect to the configured issuer and negotiate the issuance of a Verifiable Credential that can be use to operate in the Marketplace.
 
 Participants of the Marketplace must create their own self sovereign identity using the `POST /delegated/identities` method.
 
-The DLT-Booth provide information about the generated identity:
-- Claims verified by the issuer: `GET /delegated/identities`
-- Resolve the credential subject's DID and read public keys from the DID document `GET /dids/did?={url_encoded_did}`.
+The DLT-Booth provide information about the generated identity through the following endpoints:
+- `GET /delegated/identities` => Claims verified by the issuer
+- `GET /dids/did?={url_encoded_did}` => Resolve the credential subject's DID and read public keys from the DID document
 
 #### Funding an EVM account
-Participants are required to be funded with native tokens, in order to operate on the Smart Contract Platform. EVM addresses added in participants' DID documents can be funded with a faucet [available online](https://stardust.linksfoundation.com/faucet/l2/).
+Participants are required to be funded with native tokens, in order to operate on the Smart Contract Platform. EVM addresses added in participants' DID documents can be funded with a faucet [available online](https://stardust.linksfoundation.com/faucet/l2/). This simple user interface allows you to specify the address where to send funds. The address is the one specified in the DID document of the participant.
 
 Finally, a participant that owns a valid credential and enough funds can update the SCP state with the following methods:
 - Publish a new offering: `POST /delegated/offerings`
