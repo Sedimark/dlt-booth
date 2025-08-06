@@ -1,14 +1,19 @@
 // SPDX-FileCopyrightText: 2024 Fondazione LINKS
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
-use std::{str::FromStr, time::Duration};
+use std::{error::Error, str::FromStr, time::Duration};
 
 use actix_web::{get, post, web, HttpResponse, Responder};
 use alloy::{network::Ethereum, primitives::{utils::parse_ether, Address, U256}, providers::{DynProvider, Provider, ProviderBuilder}};
 use deadpool_postgres::Pool;
 use serde::Deserialize;
 use serde_json::json;
-use crate::{contracts::{Factory::{self, PublishData}, ServiceBase}, errors::ConnectorError, repository::evm_data_operations::EvmAddressesExt, utils::{iota::IotaState, stronghold_local_wallet::StrongholdWallet}};
+use crate::{contracts::{Factory::{self, PublishData}, ServiceBase}, errors::ConnectorError, repository::evm_data_operations::EvmAddressesExt, utils::{iota::IotaState, issuer::Issuer, stronghold_local_wallet::StrongholdWallet}};
+
+#[derive(Deserialize)]
+struct Addresses{
+    factory: String,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -83,12 +88,29 @@ async fn publish_offering(
 #[get("/offerings")]
 async fn get_offerings(
   db_pool: web::Data<Pool>,
-  sc_provider: web::Data<DynProvider>
+  sc_provider: web::Data<DynProvider>,
+  issuer: web::Data<Issuer>
 ) -> Result<impl Responder, ConnectorError>{
 
   // Retrieve factory address
   let pg_client = db_pool.get().await.map_err(ConnectorError::PoolError)?;
-  let factory_address = pg_client.get_address("factory").await?;
+  
+  log::debug!("Reading Factory SC address...");
+  let factory_address = match  pg_client.get_address("factory").await
+  {
+    Ok(address) => address,
+    Err(ConnectorError::TokioPostgresError(e)) if format!("{:?}",e).contains("RowCount") => {
+      log::debug!("Address not found in DB. Retrieve SC");
+      let address = issuer.get_addresses::<Addresses>().await?;
+      pg_client.insert_address("factory", &address.factory).await?;
+      Address::from_str(&address.factory)?
+    }
+    Err(e) => {
+        log::error!("{:?}",e.source().unwrap().to_string());
+        return Err(e)
+    }
+  };
+
   let factory = Factory::new(factory_address, sc_provider.into_inner());
   let result = factory
     .getAllNFTCreatedAddress()
