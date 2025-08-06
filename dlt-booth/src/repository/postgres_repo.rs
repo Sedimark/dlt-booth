@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use deadpool_postgres::{ManagerConfig, RecyclingMethod, Pool};
 use tokio_postgres::NoTls;
@@ -35,6 +35,22 @@ async fn cleanup_loop(pool: Pool)
 
 }
 
+async fn db_init_sql(pool: &Pool) -> Result<()> {
+    log::info!("Initializing database schema");
+
+    let client = pool.get()
+        .await
+        .context("Cannot retrieve the DB client")?;
+
+    let stmt = include_str!("../../sql/dbinit.sql");
+
+    client.batch_execute(stmt)
+        .await
+        .context("Cannot initialize database")?;
+
+    Ok(())
+}
+
 pub async fn init(db_config: DatabaseConfig) -> Result<Pool> {
     log::info!("init database");
 
@@ -47,7 +63,10 @@ pub async fn init(db_config: DatabaseConfig) -> Result<Pool> {
 
     config.manager = Some(ManagerConfig { recycling_method: RecyclingMethod::Fast });
     let pool = config.create_pool(None, NoTls)?;
-    log::info!("pool database");
+    
+    log::info!("Database connected. Initializing schema...");
+    db_init_sql(&pool).await?;
+    log::info!("Database initialized");
 
     tokio::task::spawn(cleanup_loop(pool.clone()));
     Ok(pool)
