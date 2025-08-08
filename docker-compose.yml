@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: dlt-booth
+    image: ghcr.io/sedimark/dlt-booth:dev
     container_name: dlt-booth
     restart: unless-stopped
     ports:
