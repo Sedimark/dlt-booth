@@ -71,9 +71,9 @@ pub enum ConnectorError {
     // Database Errors
     #[error("Identity not found")]   
     RowNotFound,
-    #[error("tokio_postgres error")]
+    #[error(transparent)]
     TokioPostgresError(#[from] tokio_postgres::error::Error),
-    #[error("tokio_pg_mapper error")]
+    #[error(transparent)]
     TokioPostgresMapperError(#[from] tokio_pg_mapper::Error),
     #[error("Pool error")]
     PoolError(#[from] PoolError),
@@ -107,8 +107,8 @@ impl ResponseError for ConnectorError {
             ConnectorError::TokioPostgresMapperError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::PoolError(_) => StatusCode::FORBIDDEN,
             ConnectorError::ResolveError(_) => StatusCode::NOT_FOUND,
-            ConnectorError::DidError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ConnectorError::JwkError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConnectorError::DidError(_) => StatusCode::BAD_REQUEST,
+            ConnectorError::JwkError(_) => StatusCode::BAD_REQUEST,
             ConnectorError::CredentialMissing => StatusCode::BAD_REQUEST,
             ConnectorError::CredentialError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::PersistFileError => StatusCode::INTERNAL_SERVER_ERROR,
@@ -119,7 +119,7 @@ impl ResponseError for ConnectorError {
             ConnectorError::IdMissing => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::VerificationMethodError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::JwtValidationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                        ConnectorError::ChallengePendingError => StatusCode::BAD_REQUEST,
+            ConnectorError::ChallengePendingError => StatusCode::BAD_REQUEST,
             ConnectorError::MiddlewareError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ConnectorError::EthMethodNotFound => StatusCode::BAD_REQUEST,
             ConnectorError::InvalidVerificationMethodType => StatusCode::BAD_REQUEST,
