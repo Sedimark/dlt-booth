@@ -45,7 +45,7 @@ RPC_PROVIDER=https://stardust.unican.sedimark.eu/sedimark-chain
 CHAIN_ID=1074
 
 # ISSUER CONFIG
-ISSUER_URL=http://issuer.stardust.linksfoundation.com/api
+ISSUER_URL=http://issuer.stardust.linksfoundation.com/dev/
 
 # KEY STORAGE CONFIG
 KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH="./key_storage.stronghold" # file path where secrets will be stored
@@ -145,7 +145,7 @@ services:
       RPC_PROVIDER: https://stardust.unican.sedimark.eu/sedimark-chain
       CHAIN_ID: 1074
       # ISSUER CONFIG
-      ISSUER_URL: http://issuer.stardust.linksfoundation.com/api
+      ISSUER_URL: http://issuer.stardust.linksfoundation.com/dev/api
       # KEY STORAGE CONFIG
       KEY_STORAGE_STRONGHOLD_SNAPSHOT_PATH: ./key_storage.stronghold
       KEY_STORAGE_STRONGHOLD_PASSWORD: some_hopefully_secure_password
