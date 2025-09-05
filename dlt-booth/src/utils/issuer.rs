@@ -32,8 +32,7 @@ impl Issuer{
     /// - url: base address of a supported Mediterraneus Issuer
     pub fn init(url: impl AsRef<str>) -> anyhow::Result<Self>{
         let uri = Url::from_str(url.as_ref()
-            .trim_end_matches('/')
-            .replace("/api", "/")
+            .replace("/api", "")
             .as_str())?;
         let client = reqwest::Client::builder()
             .build()?;
@@ -43,9 +42,12 @@ impl Issuer{
     /// Attempt to register an identity to the issuer
     pub async fn register(&self, identity: &models::identity::Identity, iota_state: &IotaState, credential_data: Credential) -> Result<Identity, ConnectorError>{
         let client = &self.client;
+        
+        let mut challenge_url = self.base_url.clone();
+        challenge_url.path_segments_mut()
+            .map_err(|_| ConnectorError::OtherError("Cannot be base".to_owned()))?
+            .extend(&["api", "challenges"]);
 
-        let mut challenge_url = self.base_url.join("api/challenges")
-            .expect("Cannot add an absolute URL");
         let did = format!("did={}", identity.did);
         challenge_url.set_query(Some(did.as_str()));
 
@@ -70,9 +72,11 @@ impl Issuer{
             "credentialSubject": subject
         });
 
-        let credential_url = self.base_url
-            .join("api/credentials")
-            .expect("Cannot add an absolute URL");
+        let mut credential_url = self.base_url.clone();
+        credential_url
+            .path_segments_mut()
+            .map_err(|_| ConnectorError::OtherError("Cannot be base".to_owned()))?
+            .extend(&["api","credentials"]);
 
         let credential: CredentialIssuedResponse = client.post(credential_url)
             .json(&credential_req_body)
@@ -93,9 +97,11 @@ impl Issuer{
 
     /// Request a nonce to the issuer.
     pub async fn get_challenge(&self, identity: &models::identity::Identity) -> Result<String, ConnectorError>{
-        let mut challenge_url = self.base_url
-            .join("api/challenges")
-            .expect("Cannot add an absolute URL");
+        let mut challenge_url = self.base_url.clone();
+        challenge_url.path_segments_mut()
+            .map_err(|_| ConnectorError::OtherError("Cannot be base".to_owned()))?
+            .extend(&["api", "challenges"]);
+
         let client = &self.client;
 
         let did = format!("did={}", identity.did);
@@ -129,9 +135,10 @@ impl Issuer{
         where T: DeserializeOwned{
         let client = &self.client;
 
-        let addresses_url = self.base_url
-            .join("api/addresses")
-            .expect("Cannot add an absolute URL");
+        let mut addresses_url = self.base_url.clone();
+        addresses_url.path_segments_mut()
+            .map_err(|_| ConnectorError::OtherError("Cannot be base".to_owned()))?
+            .extend(&["api","addresses"]);
 
         let addresses = client.get(addresses_url)
             .send()
