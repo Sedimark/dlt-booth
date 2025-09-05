@@ -15,7 +15,7 @@ services:
       - deploy
     #enables data persistance of key storage and wallet. Remove it to disable data persistance
     volumes:
-      - "./docker_data:/data"
+      - "./docker_data:/data:Z=true,U=true"
     networks:
       - dlt-booth-net
     env_file:
@@ -30,7 +30,7 @@ services:
     env_file: 
       - ./dlt-booth/env/postgres.env
     volumes: 
-      - "postgresdata:/var/lib/postgresql/data:ro=true,U=true"
+      - "postgresdata:/var/lib/postgresql/data"
     restart: always
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]

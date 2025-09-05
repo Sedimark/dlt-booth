@@ -31,7 +31,10 @@ impl Issuer{
     /// ### Fields
     /// - url: base address of a supported Mediterraneus Issuer
     pub fn init(url: impl AsRef<str>) -> anyhow::Result<Self>{
-        let uri = Url::from_str(url.as_ref())?;
+        let uri = Url::from_str(url.as_ref()
+            .trim_end_matches('/')
+            .replace("/api", "/")
+            .as_str())?;
         let client = reqwest::Client::builder()
             .build()?;
         Ok(Self{base_url: uri, client:client})
@@ -39,10 +42,10 @@ impl Issuer{
 
     /// Attempt to register an identity to the issuer
     pub async fn register(&self, identity: &models::identity::Identity, iota_state: &IotaState, credential_data: Credential) -> Result<Identity, ConnectorError>{
-        let mut challenge_url = self.base_url.clone();
         let client = &self.client;
 
-        challenge_url.set_path("/api/challenges");
+        let mut challenge_url = self.base_url.join("api/challenges")
+            .expect("Cannot add an absolute URL");
         let did = format!("did={}", identity.did);
         challenge_url.set_query(Some(did.as_str()));
 
@@ -67,8 +70,9 @@ impl Issuer{
             "credentialSubject": subject
         });
 
-        let mut credential_url = self.base_url.clone();
-        credential_url.set_path("/api/credentials");
+        let credential_url = self.base_url
+            .join("api/credentials")
+            .expect("Cannot add an absolute URL");
 
         let credential: CredentialIssuedResponse = client.post(credential_url)
             .json(&credential_req_body)
@@ -89,10 +93,11 @@ impl Issuer{
 
     /// Request a nonce to the issuer.
     pub async fn get_challenge(&self, identity: &models::identity::Identity) -> Result<String, ConnectorError>{
-        let mut challenge_url = self.base_url.clone();
+        let mut challenge_url = self.base_url
+            .join("api/challenges")
+            .expect("Cannot add an absolute URL");
         let client = &self.client;
 
-        challenge_url.set_path("/api/challenges");
         let did = format!("did={}", identity.did);
         challenge_url.set_query(Some(did.as_str()));
 
@@ -122,10 +127,11 @@ impl Issuer{
 
     pub async fn get_addresses<T>(&self) -> Result<T, ConnectorError>
         where T: DeserializeOwned{
-        let mut addresses_url = self.base_url.clone();
         let client = &self.client;
 
-        addresses_url.set_path("/api/addresses");
+        let addresses_url = self.base_url
+            .join("api/addresses")
+            .expect("Cannot add an absolute URL");
 
         let addresses = client.get(addresses_url)
             .send()
