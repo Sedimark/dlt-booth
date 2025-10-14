@@ -64,8 +64,15 @@ async fn verify_signature(
   }
 
 }
+
+#[get("/health")]
+async fn health_check() -> impl Responder{
+    HttpResponse::Ok().finish()
+}
+
 pub fn scoped_config(cfg: &mut web::ServiceConfig) {
   cfg
   .service(resolve_did)
-  .service(verify_signature);
+  .service(verify_signature)
+  .service(health_check);
 }

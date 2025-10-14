@@ -2,6 +2,8 @@
 
 -- SPDX-License-Identifier: GPL-3.0-or-later
 
+BEGIN;
+
 CREATE SCHEMA IF NOT EXISTS dlt_booth;
 
 CREATE TABLE IF NOT EXISTS dlt_booth.identities (
@@ -36,6 +38,8 @@ CREATE TABLE IF NOT EXISTS dlt_booth.download_requests (
 );
 
 CREATE TABLE IF NOT EXISTS dlt_booth.addresses (
-	addr_name		TEXT NOT NULL,
+	addr_name		TEXT PRIMARY KEY,
 	evm_address 	TEXT NOT NULL
 );
+
+END;

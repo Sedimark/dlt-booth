@@ -18,7 +18,8 @@ RUN --mount=type=cache,target=/app/target/ \
 # 2 - Deploy Stage
 # ---------------------------------------------------
     
- FROM alpine:latest
- COPY --from=dlt-booth-build /app/dlt-booth /usr/local/bin/dlt-booth
- WORKDIR /data
- CMD ["dlt-booth"] 
+FROM alpine:latest
+RUN apk add --no-cache curl
+COPY --from=dlt-booth-build /app/dlt-booth /usr/local/bin/dlt-booth
+WORKDIR /data
+CMD ["dlt-booth"] 
